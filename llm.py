@@ -1,7 +1,7 @@
 """
 GLM-4 LLM wrapper for LangChain integration.
 
-Uses Zhipu AI's API to access GLM-4 models for response generation.
+Uses Zhipu AI's API to access GLM models for response generation.
 """
 import logging
 from typing import Optional, List, Dict, Any
@@ -17,8 +17,11 @@ from config import get_settings
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
+# Custom API base URL
+ZAI_API_BASE = "https://api.z.ai/api/coding/paas/v4"
+
 # Default timeout for API calls (seconds)
-DEFAULT_API_TIMEOUT = 30.0
+DEFAULT_API_TIMEOUT = 120.0
 
 
 # ============================================================================
@@ -56,7 +59,9 @@ class GLM4LLM(BaseLLM):
         api_key = kwargs.get('api_key', settings.zhipuai_api_key)
         if not api_key:
             raise ValueError("ZHIPUAI_API_KEY must be set in environment or config")
-        self.zhipuai_client = ZhipuAI(api_key=api_key)
+        # Use custom API base URL
+        base_url = kwargs.get('base_url', ZAI_API_BASE)
+        self.zhipuai_client = ZhipuAI(api_key=api_key, base_url=base_url)
         self.model = kwargs.get('model', self.model)
         self.temperature = kwargs.get('temperature', self.temperature)
         self.top_p = kwargs.get('top_p', self.top_p)
@@ -208,7 +213,7 @@ async def chat_completion(
         ...     {"role": "user", "content": "What are the best 3-star restaurants?"}
         ... ])
     """
-    client = ZhipuAI(api_key=settings.zhipuai_api_key)
+    client = ZhipuAI(api_key=settings.zhipuai_api_key, base_url=ZAI_API_BASE)
 
     try:
         response = client.chat.completions.create(
@@ -236,37 +241,81 @@ async def chat_completion(
 def simple_chat(
     user_message: str,
     system_message: str = "You are a helpful assistant.",
-    model: str = "glm-4",
+    model: str = "glm-5.1",
     timeout: float = DEFAULT_API_TIMEOUT
 ) -> str:
-    """Simple synchronous chat function.
+    """Simple synchronous chat function using httpx directly.
 
     Args:
         user_message: User's message
         system_message: Optional system prompt
-        model: Model to use
+        model: Model to use (glm-5.1, glm-5)
         timeout: Request timeout in seconds
 
     Returns:
         Model's response text
     """
-    client = ZhipuAI(api_key=settings.zhipuai_api_key)
+    import httpx
 
-    messages = [
-        {"role": "system", "content": system_message},
-        {"role": "user", "content": user_message}
+    # Try custom endpoint first, then fall back to standard ZhipuAI endpoint
+    endpoints = [
+        ZAI_API_BASE,
+        "https://open.bigmodel.cn/api/paas/v4"
     ]
 
-    try:
-        response = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            timeout=timeout,
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        logger.error(f"Simple chat failed: {type(e).__name__}: {e}")
-        raise
+    for endpoint in endpoints:
+        url = f"{endpoint}/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {settings.zhipuai_api_key}",
+            "Content-Type": "application/json"
+        }
+        data = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": user_message}
+            ],
+            "max_tokens": 2000  # Increase max_tokens for reasoning models
+        }
+
+        try:
+            logger.info(f"Attempting endpoint: {endpoint} with model: {model}")
+            with httpx.Client(timeout=timeout) as client:
+                response = client.post(url, json=data, headers=headers)
+                response.raise_for_status()
+                result = response.json()
+
+                # Handle different response formats
+                message = result["choices"][0]["message"]
+                content = message.get("content", "")
+                reasoning_content = message.get("reasoning_content", "")
+
+                # For reasoning models, use reasoning_content if content is empty
+                # Otherwise combine both if both exist
+                if content and reasoning_content:
+                    final_content = f"{reasoning_content}\n\n{content}"
+                elif reasoning_content:
+                    final_content = reasoning_content
+                else:
+                    final_content = content
+
+                logger.info(f"Successfully got response from {endpoint}")
+                return final_content
+        except httpx.HTTPStatusError as e:
+            logger.error(f"HTTP error from {endpoint}: {e.response.status_code} - {e.response.text}")
+            if e.response.status_code in (400, 401, 403):
+                # Don't retry for client errors - API key or model issue
+                raise
+        except (httpx.ReadTimeout, httpx.ConnectError) as e:
+            logger.error(f"Timeout/connection error from {endpoint}: {type(e).__name__}: {e}")
+            # Try next endpoint
+            continue
+        except Exception as e:
+            logger.error(f"Unexpected error from {endpoint}: {type(e).__name__}: {e}")
+            continue
+
+    # All endpoints failed
+    raise RuntimeError(f"Failed to get response from any endpoint. Last error: {str(e)}")
 
 
 # ============================================================================
@@ -282,7 +331,7 @@ async def stream_chat_completion(
 
     Yields chunks of the response as they arrive.
     """
-    client = ZhipuAI(api_key=settings.zhipuai_api_key)
+    client = ZhipuAI(api_key=settings.zhipuai_api_key, base_url=ZAI_API_BASE)
 
     try:
         stream = client.chat.completions.create(

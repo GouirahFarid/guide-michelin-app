@@ -4,6 +4,7 @@ FastAPI application for Michelin restaurant RAG system.
 Provides REST API endpoints for restaurant queries and recommendations.
 """
 import asyncio
+import json
 import logging
 import time
 import uuid
@@ -12,17 +13,17 @@ from typing import List, Optional, Dict, Any
 
 from fastapi import FastAPI, HTTPException, Query, BackgroundTasks, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
+from sse_starlette.sse import EventSourceResponse
 
 from config import get_settings
+# Database imports (optional now, kept for some endpoints)
 from database import (
     init_database,
     close_pool,
-    search_restaurants,
-    search_restaurants_nearby,
-    get_restaurant_by_id,
 )
-from agent import RestaurantAgent, get_restaurant_recommendations
+# Use LangChain agent instead of database-backed agent
+from langchain_agent import create_langchain_michelin_agent
 from ingest import ingest_data, IngestConfig, verify_ingestion
 from models import (
     ChatRequest,
@@ -56,7 +57,7 @@ settings = get_settings()
 sessions: Dict[str, List[ChatMessage]] = {}
 SESSION_TIMEOUT = 3600  # 1 hour
 session_timestamps: Dict[str, float] = {}
-agent: Optional[RestaurantAgent] = None
+agent = None  # LangChain Michelin agent
 
 
 # ============================================================================
@@ -87,19 +88,16 @@ async def lifespan(app: FastAPI):
     global agent
 
     # Startup
-    print("🍽️  Starting MichelinBot API...")
-    print(f"📊 Database: {settings.database_url}")
-    print(f"🤖 Embedding Model: {settings.embedding_model}")
+    print("[MichelinBot] Starting API (LangChain + Streaming Mode)...")
+    print("[LLM] Using ZhipuAI glm-5.1 with OpenAI-compatible endpoint")
 
-    try:
-        await init_database()
-        print("✅ Database initialized")
-    except Exception as e:
-        print(f"⚠️  Database initialization warning: {e}")
-
-    # Initialize agent
-    agent = RestaurantAgent()
-    print("✅ Agent initialized")
+    # Initialize LangChain Michelin agent
+    agent = create_langchain_michelin_agent(
+        model="glm-5.1",
+        temperature=0.7,
+        streaming=True
+    )
+    print("[Agent] LangChain Michelin agent initialized")
 
     # Track start time
     app.state.start_time = time.time()
@@ -107,9 +105,8 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
-    print("👋 Shutting down...")
-    await close_pool()
-    print("✅ Connections closed")
+    print("[Shutdown] Closing...")
+    print("[Shutdown] Complete")
 
 
 # ============================================================================
@@ -150,7 +147,7 @@ async def http_exception_handler(request, exc):
     logger.warning(f"HTTP {exc.status_code}: {exc.detail}")
     return JSONResponse(
         status_code=exc.status_code,
-        content=ErrorResponse(error=exc.detail, timestamp=None).dict()
+        content=ErrorResponse(error=exc.detail).model_dump(mode='json')
     )
 
 
@@ -162,9 +159,8 @@ async def general_exception_handler(request, exc):
         status_code=500,
         content=ErrorResponse(
             error="Internal server error",
-            detail="An unexpected error occurred. Please try again later.",
-            timestamp=None
-        ).dict()
+            detail="An unexpected error occurred. Please try again later."
+        ).model_dump(mode='json')
     )
 
 
@@ -174,36 +170,14 @@ async def general_exception_handler(request, exc):
 
 @app.get("/health", response_model=HealthResponse, tags=["Health"])
 async def health_check():
-    """Health check endpoint with actual database verification."""
+    """Health check endpoint for LLM-only mode."""
     uptime = time.time() - app.state.start_time
-
-    # Check database connection
-    db_connected = False
-    try:
-        from database import get_pool
-        pool = await get_pool()
-        async with pool.connection() as conn:
-            await conn.execute("SELECT 1")
-        db_connected = True
-    except Exception as e:
-        logger.error(f"Database health check failed: {e}")
-
-    # Check embedding model
-    embedding_loaded = False
-    try:
-        from embeddings import create_embeddings
-        embeddings = create_embeddings()
-        # Trigger lazy load
-        _ = embeddings._load_model()
-        embedding_loaded = True
-    except Exception as e:
-        logger.error(f"Embedding model health check failed: {e}")
 
     return HealthResponse(
         status="healthy",
         version="1.0.0",
-        database_connected=db_connected,
-        embedding_model_loaded=embedding_loaded,
+        database_connected=False,  # Not used in LLM-only mode
+        embedding_model_loaded=False,  # Not used in LLM-only mode
         llm_configured=bool(settings.zhipuai_api_key),
         uptime_seconds=uptime,
     )
@@ -305,6 +279,7 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
                 ),
                 radius_km=geo_info.get("distance_constraint", 50),
                 restaurants_found=len(result.get("sources", [])),
+                restaurants=[],  # LLM-only mode doesn't return restaurant objects
             )
 
         return ChatResponse(
@@ -323,6 +298,78 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
             status_code=500,
             detail="An error occurred processing your request. Please try again."
         )
+
+
+# ============================================================================
+# STREAMING CHAT ENDPOINT
+# ============================================================================
+
+@app.get("/chat/stream", tags=["Chat"])
+async def chat_stream(
+    query: str = Query(..., description="User query about restaurants"),
+    session_id: Optional[str] = Query(None, description="Session ID for conversation history"),
+    user_lat: Optional[float] = Query(None, description="User latitude"),
+    user_lon: Optional[float] = Query(None, description="User longitude")
+):
+    """Streaming chat endpoint using Server-Sent Events (SSE).
+
+    Returns restaurant recommendations as streaming tokens for real-time display.
+
+    Example:
+        curl "http://localhost:8003/chat/stream?query=Best%20restaurants%20in%20Munich"
+    """
+    global agent
+
+    async def event_generator():
+        """Generate SSE events for streaming response."""
+        try:
+            # Prepare user location
+            user_location = None
+            if user_lat is not None and user_lon is not None:
+                user_location = {
+                    "latitude": user_lat,
+                    "longitude": user_lon,
+                }
+
+            # Get conversation history for this session
+            history = None
+            if session_id and session_id in sessions:
+                history = [
+                    {"role": msg.role, "content": msg.content}
+                    for msg in sessions[session_id]
+                ]
+
+            # Stream response from LangChain agent
+            full_response = ""
+            async for token in agent.chat_stream(
+                query=query,
+                user_location=user_location,
+                conversation_history=history
+            ):
+                full_response += token
+                # Send SSE event with the token
+                yield {
+                    "event": "token",
+                    "data": json.dumps({"content": token}, ensure_ascii=False)
+                }
+
+            # Send completion event
+            yield {
+                "event": "done",
+                "data": json.dumps({
+                    "session_id": session_id or str(uuid.uuid4()),
+                    "response_length": len(full_response)
+                }, ensure_ascii=False)
+            }
+
+        except Exception as e:
+            logger.error(f"Streaming error: {type(e).__name__}: {e}", exc_info=True)
+            yield {
+                "event": "error",
+                "data": json.dumps({"error": str(e)}, ensure_ascii=False)
+            }
+
+    return EventSourceResponse(event_generator())
 
 
 # ============================================================================
