@@ -365,10 +365,35 @@ Please provide your recommendations in this format:
         # Build messages
         messages = self._build_messages(query, location_context, conversation_history)
 
-        # Stream response
-        async for chunk in self.llm.astream(messages):
-            if hasattr(chunk, 'content'):
-                yield chunk.content
+        # Stream response - filter out empty chunks
+        chunks_received = False
+        try:
+            async for chunk in self.llm.astream(messages):
+                chunks_received = True
+                # Handle different chunk types from ZhipuAI/OpenAI-compatible APIs
+                content = ""
+                if hasattr(chunk, 'content'):
+                    content = chunk.content
+                elif hasattr(chunk, 'text'):
+                    content = chunk.text
+                elif isinstance(chunk, str):
+                    content = chunk
+
+                # Only yield non-empty content
+                if content:
+                    logger.debug(f"Stream chunk: {repr(content[:50])}")
+                    yield content
+        except Exception as e:
+            logger.warning(f"Streaming failed: {e}, falling back to non-streaming")
+
+        # Fallback: if no chunks received, use non-streaming
+        if not chunks_received:
+            logger.info("No streaming chunks received, using non-streaming fallback")
+            response = await self.llm.ainvoke(messages)
+            if hasattr(response, 'content'):
+                yield response.content
+            else:
+                yield str(response)
 
 
 # ============================================================================
