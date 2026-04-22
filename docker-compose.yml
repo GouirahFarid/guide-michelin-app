@@ -1,0 +1,91 @@
+services:
+  # PostgreSQL with pgvector extension
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: michelinbot-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-michelin_db}
+      POSTGRES_USER: ${POSTGRES_USER:-michelin_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-root}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-michelin_user} -d ${POSTGRES_DB:-michelin_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - michelinbot-network
+    restart: unless-stopped
+
+  # MichelinBot API Application
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: michelinbot-api
+    environment:
+      # Database
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-michelin_user}:${POSTGRES_PASSWORD:-root}@postgres:5432/${POSTGRES_DB:-michelin_db}
+      # Zhipu AI (set your API key in .env or override here)
+      ZHIPUAI_API_KEY: ${ZHIPUAI_API_KEY}
+      # CORS
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8000}
+      # Server
+      HOST: 0.0.0.0
+      PORT: 8000
+      # Embeddings
+      EMBEDDING_MODEL: sentence-transformers/all-MiniLM-L6-v2
+      # RAG Settings
+      CHUNK_SIZE: 500
+      CHUNK_OVERLAP: 50
+      TOP_K_RETRIEVAL: 5
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./michelin_my_maps.csv:/app/michelin_my_maps.csv:ro
+      - ./data:/app/data
+    networks:
+      - michelinbot-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health').raise_for_status()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Ingestion service (one-time job to populate database)
+  ingest:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: michelinbot-ingest
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-michelin_user}:${POSTGRES_PASSWORD:-root}@postgres:5432/${POSTGRES_DB:-michelin_db}
+      ZHIPUAI_API_KEY: ${ZHIPUAI_API_KEY}run lo
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./michelin_my_maps.csv:/app/michelin_my_maps.csv:ro
+      - ./data:/app/data
+    networks:
+      - michelinbot-network
+    command: ["python", "main.py", "--ingest", "--start-after-ingest"]
+    profiles:
+      - ingest
+    restart: "no"
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  michelinbot-network:
+    driver: bridge
