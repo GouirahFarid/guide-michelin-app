@@ -19,10 +19,27 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
-  // Route rules for API proxy
-  routeRules: {
-    '/api/**': {
-      proxy: { to: 'http://localhost:8000/**' }
+  // Vite proxy for development (works with Nuxt 4)
+  vite: {
+    server: {
+      proxy: {
+        '/api': {
+          target: 'http://localhost:8000',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api/, ''),
+          configure: (proxy, _options) => {
+            proxy.on('error', (err, _req, _res) => {
+              console.log('proxy error', err);
+            });
+            proxy.on('proxyReq', (proxyReq, req, _res) => {
+              console.log('Sending request to the target:', req.method, req.url);
+            });
+            proxy.on('proxyRes', (proxyReq, req, _res) => {
+              console.log('Received response from the target:', proxyReq.statusCode, req.url);
+            });
+          }
+        }
+      }
     }
   },
 

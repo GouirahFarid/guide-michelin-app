@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     debug: bool = False
 
     # API Configuration
-    api_base_url: str = "https://api.z.ai/api/paas/v4"
+    api_base_url: str = "https://api.z.ai/api/coding/paas/v4"
     api_timeout: int = 120
 
     # LLM Configuration
