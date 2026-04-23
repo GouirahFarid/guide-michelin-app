@@ -115,7 +115,7 @@
             <div class="p-4">
               <!-- Empty State -->
               <div v-if="messages.length === 1" class="text-center py-8">
-                <div class="w-12 h-12 bg-black rounded-full flex items-center justify-center mx-auto mb-4">
+                <div class="w-12 h-12 bg-gradient-to-br from-red-600 to-red-700 rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
                   <span class="text-white text-lg font-bold">M</span>
                 </div>
                 <h3 class="text-lg font-semibold text-gray-900 mb-2">Hi there!</h3>
@@ -138,14 +138,14 @@
                 <div v-for="(message, index) in messages" :key="index">
                   <!-- User Message -->
                   <div v-if="message.role === 'user'" class="flex justify-end">
-                    <div class="max-w-[85%] bg-gray-100 rounded-2xl px-3 py-2">
-                      <p class="text-sm text-gray-900 whitespace-pre-wrap">{{ message.content }}</p>
+                    <div class="max-w-[85%] bg-gradient-to-r from-red-600 to-red-700 text-white rounded-2xl rounded-br-md px-3 py-2 shadow-sm">
+                      <p class="text-sm whitespace-pre-wrap">{{ message.content }}</p>
                     </div>
                   </div>
 
                   <!-- Assistant Message -->
                   <div v-else class="flex gap-3">
-                    <div class="w-7 h-7 bg-black rounded-full flex items-center justify-center flex-shrink-0">
+                    <div class="w-7 h-7 bg-gradient-to-br from-red-600 to-red-700 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm">
                       <span class="text-white text-xs font-bold">M</span>
                     </div>
                     <div class="flex-1 min-w-0">
@@ -168,7 +168,7 @@
                       <!-- Progress -->
                       <div v-if="message.progress && message.progress.value < 1" class="mb-2">
                         <div class="flex items-center gap-2 text-gray-500 text-xs">
-                          <div class="w-3 h-3 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
+                          <div class="w-3 h-3 border-2 border-gray-300 border-t-red-600 rounded-full animate-spin" />
                           <span>{{ message.progress.message }}</span>
                         </div>
                       </div>
@@ -207,7 +207,7 @@
 
                       <!-- Loading State -->
                       <div v-if="message.loading" class="flex items-center gap-2 text-gray-400">
-                        <div class="w-3 h-3 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin" />
+                        <div class="w-3 h-3 border-2 border-gray-300 border-t-red-600 rounded-full animate-spin" />
                       </div>
                     </div>
                   </div>
@@ -217,26 +217,68 @@
           </div>
 
           <!-- Input -->
-          <div class="border-t border-gray-200 p-3 shrink-0">
-            <div class="relative flex items-center">
-              <UInput
-                v-model="form.query"
-                placeholder="Ask about restaurants..."
-                size="md"
-                :disabled="isLoading"
-                class="flex-1"
-                @keydown.enter.exact.prevent="handleSubmit"
-                :ui="{ wrapper: 'w-full', base: 'pr-10' }"
-              />
-              <UButton
-                icon="i-heroicons-arrow-up"
-                :loading="isLoading"
-                :disabled="!form.query.trim()"
-                @click="handleSubmit"
-                size="sm"
-                class="absolute right-1.5"
-                :class="form.query.trim() ? 'bg-black text-white' : 'bg-gray-200 text-gray-400'"
-              />
+          <div class="border-t border-gray-200 bg-white/80 backdrop-blur-sm p-3 shrink-0">
+            <!-- Input Container -->
+            <div class="relative">
+              <div class="flex items-end gap-1.5 p-2 bg-white rounded-xl shadow-md shadow-gray-200/50 border border-gray-100 focus-within:border-red-300 focus-within:ring-2 focus-within:ring-red-100 transition-all">
+                <!-- Clear Button -->
+                <Transition
+                  enter-active-class="transition-all duration-150"
+                  enter-from-class="opacity-0 scale-75"
+                  enter-to-class="opacity-100 scale-100"
+                  leave-active-class="transition-all duration-100"
+                  leave-from-class="opacity-100 scale-100"
+                  leave-to-class="opacity-0 scale-75"
+                >
+                  <UButton
+                    v-if="form.query.length > 0"
+                    icon="i-heroicons-x-mark"
+                    size="sm"
+                    variant="ghost"
+                    color="gray"
+                    :disabled="isLoading"
+                    @click="form.query = ''"
+                    class="shrink-0"
+                  />
+                </Transition>
+
+                <!-- Text Area Input -->
+                <textarea
+                  v-model="form.query"
+                  :disabled="isLoading"
+                  @keydown.enter.exact.prevent="handleSubmit"
+                  @keydown.enter.shift.prevent="() => form.query += '\n'"
+                  rows="1"
+                  placeholder="Ask about restaurants..."
+                  class="flex-1 resize-none bg-transparent border-0 focus:ring-0 focus:outline-none text-sm text-gray-900 placeholder:text-gray-400 py-2 px-1 max-h-24 overflow-y-auto"
+                  :class="{ 'text-gray-400': isLoading }"
+                  @input="autoResize"
+                  ref="textareaRef"
+                />
+
+                <!-- Send Button -->
+                <UButton
+                  :icon="form.query.trim() ? 'i-heroicons-paper-airplane' : 'i-heroicons-arrow-up'"
+                  :loading="isLoading"
+                  :disabled="!form.query.trim()"
+                  @click="handleSubmit"
+                  size="sm"
+                  variant="raw"
+                  class="shrink-0 transition-all w-8 h-8 flex items-center justify-center rounded-lg"
+                  :class="form.query.trim() ? 'bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800' : 'bg-gray-100 text-gray-400'"
+                />
+              </div>
+
+              <!-- Character Counter -->
+              <div class="flex items-center justify-between mt-1.5 px-1">
+                <span class="text-xs text-gray-400">
+                  <span :class="{ 'text-red-500': form.query.length > 500 }">
+                    {{ form.query.length }}
+                  </span>
+                  /500
+                </span>
+                <span class="text-xs text-gray-400">Enter to send</span>
+              </div>
             </div>
           </div>
         </div>
@@ -270,6 +312,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const isOpen = ref(false)
 const messagesContainer = ref<HTMLElement>()
+const textareaRef = ref<HTMLTextAreaElement>()
 const isLoading = ref(false)
 const sessionId = ref<string>()
 const showQuickAssist = ref(false)
@@ -324,6 +367,19 @@ const quickAssistOptions = [
   { label: '🍝 Italian', text: 'Best Italian restaurants' },
   { label: '🍣 Sushi', text: 'Top-rated sushi places' },
 ]
+
+// Auto-resize textarea
+function autoResize() {
+  const textarea = textareaRef.value
+  if (textarea) {
+    textarea.style.height = 'auto'
+    textarea.style.height = Math.min(textarea.scrollHeight, 96) + 'px'
+  }
+}
+
+watch(() => form.query, () => {
+  nextTick(() => autoResize())
+})
 
 const { streamChat } = useChatStream()
 
