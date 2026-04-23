@@ -3,6 +3,8 @@
  *
  * Handles Server-Sent Events connection and event parsing
  * for real-time restaurant recommendations.
+ *
+ * Automatically includes user location from useGeolocation.
  */
 
 export interface SSEEvent<T = unknown> {
@@ -45,8 +47,8 @@ interface ErrorData {
 export interface ChatStreamOptions {
   query: string
   session_id?: string
-  user_lat?: number
-  user_lon?: number
+  user_lat?: number  // Optional override for auto-detected location
+  user_lon?: number  // Optional override for auto-detected location
   onError?: (error: string) => void
   onProgress?: (step: string, progress: number, message: string) => void
   onStep?: (step: string, status: 'start' | 'complete', message: string) => void
@@ -121,11 +123,18 @@ export interface StepData {
  */
 export function useChatStream() {
   const API_BASE = '/api' // Uses Vite proxy to backend
+  const { state: locationState, init: initLocation } = useGeolocation()
 
   /**
    * Stream chat responses from the MichelinBot API
+   *
+   * Automatically includes user location if available.
+   * Manual user_lat/user_lon parameters override auto-detected location.
    */
   const streamChat = async (options: ChatStreamOptions): Promise<void> => {
+    // Ensure location is initialized (uses cache if available, quick operation)
+    await initLocation()
+
     const {
       query,
       session_id,
@@ -144,8 +153,13 @@ export function useChatStream() {
     // Build URL with query parameters
     const params = new URLSearchParams({ query })
     if (session_id) params.append('session_id', session_id)
-    if (user_lat !== undefined) params.append('user_lat', user_lat.toString())
-    if (user_lon !== undefined) params.append('user_lon', user_lon.toString())
+
+    // Use auto-detected location unless manually overridden
+    const lat = user_lat !== undefined ? user_lat : locationState.value.coords?.latitude
+    const lon = user_lon !== undefined ? user_lon : locationState.value.coords?.longitude
+
+    if (lat !== undefined) params.append('user_lat', lat.toString())
+    if (lon !== undefined) params.append('user_lon', lon.toString())
 
     const url = `${API_BASE}/chat/stream?${params.toString()}`
 

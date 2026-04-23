@@ -1,38 +1,15 @@
 services:
-  postgres:
-    image: pgvector/pgvector:pg16
-    container_name: michelinbot-db-prod
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - michelin-network
-    restart: always
-
   api:
     build:
       context: ./michelin-bot
       dockerfile: Dockerfile
     container_name: michelinbot-api-prod
+    env_file:
+      - ./michelin-bot/.env.prod
     environment:
-      DATABASE_URL: ${DATABASE_URL}
       ZHIPUAI_API_KEY: ${ZHIPUAI_API_KEY}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
-      HOST: 0.0.0.0
-      PORT: 8000
-    depends_on:
-      postgres:
-        condition: service_healthy
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://localhost}
     volumes:
-      - ./michelin-bot/michelin_my_maps.csv:/app/michelin_my_maps.csv:ro
       - ./michelin-bot/data:/app/data
     networks:
       - michelin-network
@@ -49,9 +26,8 @@ services:
       context: ./michelin-front
       dockerfile: Dockerfile
     container_name: michelinbot-frontend-prod
-    environment:
-      NUXT_PUBLIC_API_BASE_URL: http://api:8000
-      PORT: 3000
+    env_file:
+      - ./michelin-front/.env.prod
     networks:
       - michelin-network
     restart: always
@@ -70,9 +46,6 @@ services:
     networks:
       - michelin-network
     restart: always
-
-volumes:
-  postgres_data:
 
 networks:
   michelin-network:

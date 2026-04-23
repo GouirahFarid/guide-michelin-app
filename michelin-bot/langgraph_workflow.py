@@ -39,6 +39,11 @@ async def intent_analysis_node(state: MichelinAgentState) -> MichelinAgentState:
 
     This is the first node in the workflow. It extracts structured information
     from the natural language query for use in subsequent nodes.
+
+    Location priority:
+    1. Location mentioned in query (e.g., "in Munich")
+    2. User's GPS coordinates (auto-detected from browser)
+    3. No location (general recommendations)
     """
     query = state["query"]
     logger.info(f"Analyzing query: {query}")
@@ -54,6 +59,12 @@ async def intent_analysis_node(state: MichelinAgentState) -> MichelinAgentState:
                 "latitude": coords[0],
                 "longitude": coords[1]
             }
+    elif state.get("user_location"):
+        # No location in query, but user provided GPS coordinates
+        # Use user's location as default
+        state["detected_location"] = "Your current location"
+        state["extracted_coordinates"] = state["user_location"]
+        logger.info(f"Using user GPS location as default: {state['user_location']}")
 
     # Extract distance constraint
     distance = extract_distance_from_query(query)
@@ -122,13 +133,15 @@ async def intent_analysis_node(state: MichelinAgentState) -> MichelinAgentState:
 
 
 async def location_search_node(state: MichelinAgentState) -> MichelinAgentState:
-    """Search for restaurants based on geographic location.
+    """Prepare location context for LLM recommendations.
 
-    This node performs location-based search using coordinates from either:
+    This node processes location information for the LLM:
     1. User-provided GPS coordinates
     2. Location extracted from the query
+
+    Note: In LLM-only mode, this sets up context rather than database search.
     """
-    logger.info("Starting location search node")
+    logger.info("Starting location context node")
 
     # Determine search center
     center = None
@@ -142,7 +155,7 @@ async def location_search_node(state: MichelinAgentState) -> MichelinAgentState:
         source = "query_extracted"
 
     if not center:
-        logger.warning("No location available for search, skipping")
+        logger.warning("No location available, skipping location context")
         return state
 
     state["search_center"] = center
@@ -151,31 +164,20 @@ async def location_search_node(state: MichelinAgentState) -> MichelinAgentState:
     radius = state.get("distance_constraint", 50.0)
     state["search_radius"] = radius
 
-    # In LLM-only mode, we don't have actual database access
-    # This node sets up the context for the LLM
-    state["restaurants_found"] = []  # Will be populated by LLM knowledge
+    # In LLM-only mode, provide context to the LLM
+    state["restaurants_found"] = []
 
-    logger.info(f"Location search setup - center: {center}, radius: {radius}km")
+    logger.info(f"Location context prepared - center: {center}, radius: {radius}km")
 
     return state
 
 
 async def restaurant_lookup_node(state: MichelinAgentState) -> MichelinAgentState:
-    """Additional restaurant lookup for enriching results.
+    """Additional processing node (currently unused).
 
-    This node can be used for:
-    1. Vector similarity search (when RAG is enabled)
-    2. Additional database queries
-    3. Fallback when location search yields few results
-
-    Currently a placeholder for future RAG enhancement.
+    This node is a placeholder for future enhancements.
     """
-    logger.info("Restaurant lookup node (placeholder for RAG)")
-
-    # In full RAG mode, this would:
-    # 1. Convert query to embedding
-    # 2. Search vector database
-    # 3. Merge results with location search
+    logger.info("Restaurant lookup node (placeholder)")
 
     return state
 
@@ -195,7 +197,12 @@ async def response_generation_node(state: MichelinAgentState) -> MichelinAgentSt
     context_parts = []
 
     if state.get("detected_location"):
-        context_parts.append(f"Location: {state['detected_location']}")
+        location = state['detected_location']
+        # If using user GPS, include coordinates for LLM context
+        if location == "Your current location" and state.get("extracted_coordinates"):
+            coords = state["extracted_coordinates"]
+            location = f"User's GPS coordinates: {coords['latitude']}, {coords['longitude']}"
+        context_parts.append(f"Location: {location}")
 
     if state.get("detected_cuisine"):
         context_parts.append(f"Cuisine: {state['detected_cuisine']}")
@@ -247,15 +254,11 @@ def should_search_location(state: MichelinAgentState) -> Literal["location_searc
 
 
 def should_enrich_with_vector(state: MichelinAgentState) -> Literal["restaurant_lookup", "response_generation"]:
-    """Determine if vector search should supplement location search.
+    """Determine if additional processing is needed.
 
-    Currently always returns 'response_generation' since RAG is not enabled.
-    In full RAG mode, this would check if location search returned few results.
+    Currently always returns 'response_generation' for direct LLM generation.
     """
-    # TODO: Implement when vector search is available
-    # restaurants = state.get("restaurants_found", [])
-    # if len(restaurants) < 3:
-    #     return "restaurant_lookup"
+    # TODO: Add additional processing logic here in the future
     return "response_generation"
 
 
@@ -268,8 +271,8 @@ def create_michelin_graph() -> StateGraph:
 
     The workflow:
     1. intent_analysis -> Extract location, cuisine, awards from query
-    2. location_search (conditional) -> Search by coordinates if location available
-    3. restaurant_lookup (conditional) -> Vector search fallback
+    2. location_search (conditional) -> Prepare location context if available
+    3. restaurant_lookup (conditional) -> Additional processing (placeholder)
     4. response_generation -> Generate final LLM response
 
     Returns:

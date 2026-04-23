@@ -96,63 +96,10 @@ class CSPMiddleware(BaseHTTPMiddleware):
 
 
 # ============================================================================
-# SESSION STORAGE WITH CLEANUP
+# MEMORY STORAGE (LangChain BufferMemory)
 # ============================================================================
 
-from threading import Thread
-import asyncio
-
-class SessionStore:
-    """Thread-safe session storage with automatic cleanup."""
-
-    def __init__(self, timeout_seconds: int = 3600):
-        self.sessions: Dict[str, list] = {}
-        self.timestamps: Dict[str, float] = {}
-        self.timeout = timeout_seconds
-        self._cleanup_task: Optional[Thread] = None
-
-    def get(self, session_id: str) -> Optional[list]:
-        """Get session data, updating timestamp."""
-        if session_id in self.sessions:
-            self.timestamps[session_id] = time.time()
-            return self.sessions[session_id]
-        return None
-
-    def set(self, session_id: str, data: list) -> None:
-        """Set session data with current timestamp."""
-        self.sessions[session_id] = data
-        self.timestamps[session_id] = time.time()
-
-    def cleanup_expired(self) -> int:
-        """Remove expired sessions. Returns count of removed sessions."""
-        now = time.time()
-        expired = [
-            sid for sid, timestamp in self.timestamps.items()
-            if now - timestamp > self.timeout
-        ]
-        for sid in expired:
-            del self.sessions[sid]
-            del self.timestamps[sid]
-        return len(expired)
-
-    def start_cleanup_task(self) -> None:
-        """Start background cleanup task."""
-        if self._cleanup_task is None:
-            self._cleanup_task = Thread(target=self._cleanup_loop, daemon=True)
-            self._cleanup_task.start()
-
-    def _cleanup_loop(self) -> None:
-        """Run cleanup every 5 minutes."""
-        import logging
-        logger = logging.getLogger(__name__)
-        while True:
-            time.sleep(300)  # 5 minutes
-            removed = self.cleanup_expired()
-            if removed > 0:
-                logger.info(f"Cleaned up {removed} expired sessions")
-
-session_store = SessionStore(timeout_seconds=3600)
-session_store.start_cleanup_task()
+from memory import memory_store, build_messages_with_memory
 
 
 # ============================================================================
@@ -188,7 +135,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="MichelinBot API",
-    description="RAG-powered restaurant recommendation system using Michelin Guide data",
+    description="AI-powered restaurant recommendation system using Michelin Guide data",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -260,23 +207,9 @@ async def health_check():
     """Health check endpoint."""
     uptime = time.time() - app.state.start_time
 
-    # Check database if RAG is enabled
-    database_connected = False
-    embedding_model_loaded = False
-    if settings.enable_rag:
-        try:
-            from database import get_pool
-            pool = await get_pool()
-            database_connected = pool is not None
-            embedding_model_loaded = True  # Assume loaded if DB is connected
-        except Exception as e:
-            logger.warning(f"Database health check failed: {e}")
-
     return HealthResponse(
         status="healthy",
         version="1.0.0",
-        database_connected=database_connected if settings.enable_rag else None,
-        embedding_model_loaded=embedding_model_loaded if settings.enable_rag else None,
         llm_configured=bool(settings.zhipuai_api_key),
         uptime_seconds=uptime,
     )
@@ -350,12 +283,13 @@ async def chat_stream(
     # Get conversation history for this session
     history = None
     if session_id:
-        history = session_store.get(session_id)
+        history = memory_store.get_history(session_id)
 
     async def event_generator():
         """Generate SSE events for streaming response."""
         nonlocal session_id
         current_session_id = session_id
+        full_assistant_response = ""
 
         try:
             # Stream workflow execution
@@ -365,6 +299,14 @@ async def chat_stream(
                 session_id=session_id,
                 conversation_history=history
             ):
+                # Collect tokens for memory storage
+                if event.get("event") == "token":
+                    try:
+                        data = json.loads(event.get("data", "{}"))
+                        full_assistant_response += data.get("content", "")
+                    except json.JSONDecodeError:
+                        pass
+
                 # Update session ID from response
                 if event.get("event") == "done":
                     try:
@@ -375,13 +317,11 @@ async def chat_stream(
 
                 yield event
 
-            # Store session for continuity
+            # Store session in LangChain memory for continuity
             if current_session_id:
-                # Initialize or update session
-                existing_history = session_store.get(current_session_id) or []
-                existing_history.append({"role": "user", "content": query})
-                existing_history.append({"role": "assistant", "content": ""})  # Will be updated
-                session_store.set(current_session_id, existing_history[-20:])  # Keep last 20 messages
+                memory_store.add_message(current_session_id, "user", query)
+                if full_assistant_response:
+                    memory_store.add_message(current_session_id, "assistant", full_assistant_response)
 
         except HTTPException as e:
             raise  # Re-raise HTTP exceptions
@@ -408,7 +348,7 @@ async def root():
     return {
         "name": "MichelinBot API",
         "version": "1.0.0",
-        "description": "RAG-powered restaurant recommendation system",
+        "description": "AI-powered restaurant recommendation system",
         "endpoints": {
             "chat_stream": "/chat/stream",
             "health": "/health",

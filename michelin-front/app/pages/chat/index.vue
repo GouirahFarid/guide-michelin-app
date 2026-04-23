@@ -7,8 +7,8 @@
           <span class="text-white text-lg font-bold">M</span>
         </div>
         <div>
-          <span class="font-bold text-gray-900 text-lg">Michelin Guide</span>
-          <p class="text-xs text-gray-500">AI Restaurant Assistant</p>
+          <span class="font-bold text-gray-900 text-lg">Guide MICHELIN</span>
+          <p class="text-xs text-gray-500">Assistant Restaurant IA</p>
         </div>
       </div>
       <div class="flex items-center gap-2">
@@ -26,22 +26,22 @@
           <div class="w-20 h-20 bg-gradient-to-br from-red-600 to-red-700 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
             <UIcon name="i-heroicons-sparkles" class="w-10 h-10 text-white" />
           </div>
-          <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-3">Discover Exceptional Dining</h2>
-          <p class="text-gray-600 mb-8 max-w-md mx-auto">Explore Michelin-rated restaurants worldwide with AI-powered recommendations.</p>
+          <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-3">Découvrez une cuisine exceptionnelle</h2>
+          <p class="text-gray-600 mb-8 max-w-md mx-auto">Explorez les restaurants classés MICHELIN dans le monde avec des recommandations alimentées par l'IA.</p>
 
           <!-- Michelin Award Guide -->
           <div class="flex flex-wrap justify-center gap-2 mb-8">
             <span class="inline-flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-700 rounded-full text-sm font-medium">
               <span class="w-2 h-2 bg-red-600 rounded-full"></span>
-              3 Stars
+              3 Étoiles
             </span>
             <span class="inline-flex items-center gap-1 px-3 py-1.5 bg-orange-50 text-orange-700 rounded-full text-sm font-medium">
               <span class="w-2 h-2 bg-orange-500 rounded-full"></span>
-              2 Stars
+              2 Étoiles
             </span>
             <span class="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-full text-sm font-medium">
               <span class="w-2 h-2 bg-amber-500 rounded-full"></span>
-              1 Star
+              1 Étoile
             </span>
             <span class="inline-flex items-center gap-1 px-3 py-1.5 bg-yellow-50 text-yellow-700 rounded-full text-sm font-medium">
               <UIcon name="i-heroicons-face-smile" class="w-3 h-3" />
@@ -50,7 +50,7 @@
           </div>
 
           <!-- Suggestion Questions -->
-          <h3 class="text-sm font-medium text-gray-700 mb-3">Try asking:</h3>
+          <h3 class="text-sm font-medium text-gray-700 mb-3">Essayez de demander :</h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl mx-auto">
             <button
               v-for="suggestion in suggestions"
@@ -168,7 +168,7 @@
         class="rounded-full shadow-lg hover:shadow-xl transition-shadow"
         @click="showAssistMenu = true"
       >
-        <span class="ml-2 hidden md:inline">Quick Assist</span>
+        <span class="ml-2 hidden md:inline">Aide rapide</span>
       </UButton>
     </div>
 
@@ -178,7 +178,7 @@
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
             <UIcon name="i-heroicons-light-bulb" class="w-5 h-5 text-red-600" />
-            <span class="font-semibold text-gray-900">Quick Suggestions</span>
+            <span class="font-semibold text-gray-900">Suggestions rapides</span>
           </div>
           <UButton
             icon="i-heroicons-x-mark"
@@ -244,7 +244,7 @@
               @keydown.enter.exact.prevent="handleSubmit"
               @keydown.enter.shift.prevent="() => form.query += '\n'"
               rows="1"
-              placeholder="Ask about Michelin-rated restaurants..."
+              placeholder="Posez une question sur les restaurants classés MICHELIN..."
               class="flex-1 resize-none bg-transparent border-0 focus:ring-0 focus:outline-none text-gray-900 placeholder:text-gray-400 py-2.5 px-1 max-h-32 overflow-y-auto"
               :class="{ 'text-gray-400': isLoading }"
               @input="autoResize"
@@ -301,11 +301,11 @@
                 class="text-xs text-red-600 hover:text-red-700 flex items-center gap-1 transition-colors"
               >
                 <UIcon name="i-heroicons-light-bulb" class="w-3 h-3" />
-                Need ideas?
+                Besoin d'idées ?
               </button>
             </div>
             <p class="text-xs text-gray-400">
-              Press Enter to send • Shift + Enter for new line
+              Appuyez sur Entrée pour envoyer • Shift + Entrée pour nouvelle ligne
             </p>
           </div>
         </div>
@@ -349,7 +349,7 @@ interface Message {
 const messages = ref<Message[]>([
   {
     role: 'assistant',
-    content: 'Welcome! I\'m your Michelin Guide assistant. I can help you discover exceptional restaurants worldwide - from casual Bib Gourmand spots to prestigious 3-Michelin-starred establishments. Try asking me about restaurants in a specific city, cuisine type, or award level.',
+    content: 'Bienvenue ! Je suis votre assistant du Guide MICHELIN. Je peux vous aider à découvrir des restaurants exceptionnels dans le monde entier - des restaurants Bib Gourmand décontractés aux établissements prestigieux 3 étoiles MICHELIN. Essayez de me demander des restaurants dans une ville spécifique, un type de cuisine ou un niveau de distinction.',
   }
 ])
 
@@ -358,10 +358,10 @@ const form = reactive({
 })
 
 const suggestions = [
-  { text: '3-star restaurants in Paris', desc: 'Find the finest dining experiences' },
-  { text: 'Romantic dinner in Tokyo', desc: 'Intimate settings for two' },
-  { text: 'Bib Gourmand in London', desc: 'Great food at moderate prices' },
-  { text: 'Best sushi in New York', desc: 'Top-rated Japanese cuisine' },
+  { text: 'Restaurants 3 étoiles à Paris', desc: 'Trouver les meilleures expériences culinaires' },
+  { text: 'Dîner romantique à Tokyo', desc: 'Cadres intimes pour deux' },
+  { text: 'Bib Gourmand à Londres', desc: 'Bonne nourriture à prix modérés' },
+  { text: 'Meilleurs sushis à New York', desc: 'Cuisine japonaise hautement cotée' },
 ]
 
 // Auto-resize textarea
@@ -378,14 +378,14 @@ watch(() => form.query, () => {
 })
 
 const quickAssistOptions = [
-  { text: '3-star restaurants near me', desc: 'Exceptional dining nearby', icon: 'i-heroicons-star', color: 'bg-red-100', iconColor: 'text-red-600' },
-  { text: 'Romantic dinner spots', desc: 'Intimate settings for two', icon: 'i-heroicons-heart', color: 'bg-pink-100', iconColor: 'text-pink-600' },
-  { text: 'Bib Gourmand recommendations', desc: 'Great value dining', icon: 'i-heroicons-face-smile', color: 'bg-yellow-100', iconColor: 'text-yellow-600' },
-  { text: 'Best Italian restaurants', desc: 'Authentic cuisine', icon: 'i-heroicons-globe-alt', color: 'bg-green-100', iconColor: 'text-green-600' },
-  { text: 'Michelin Guide in Paris', desc: 'French excellence', icon: 'i-heroicons-map-pin', color: 'bg-blue-100', iconColor: 'text-blue-600' },
-  { text: 'Vegetarian fine dining', desc: 'Plant-based gourmet', icon: 'i-heroicons-leaf', color: 'bg-emerald-100', iconColor: 'text-emerald-600' },
-  { text: 'Seafood specialties', desc: 'Fresh catch', icon: 'i-heroicons-fish', color: 'bg-cyan-100', iconColor: 'text-cyan-600' },
-  { text: 'Wine cellar restaurants', desc: 'Perfect pairings', icon: 'i-heroicons-wine', color: 'bg-purple-100', iconColor: 'text-purple-600' },
+  { text: 'Restaurants 3 étoiles près de moi', desc: 'Cuisine exceptionnelle à proximité', icon: 'i-heroicons-star', color: 'bg-red-100', iconColor: 'text-red-600' },
+  { text: 'Endros pour dîner romantique', desc: 'Cadres intimes pour deux', icon: 'i-heroicons-heart', color: 'bg-pink-100', iconColor: 'text-pink-600' },
+  { text: 'Recommandations Bib Gourmand', desc: 'Bons rapports qualité-prix', icon: 'i-heroicons-face-smile', color: 'bg-yellow-100', iconColor: 'text-yellow-600' },
+  { text: 'Meilleurs restaurants italiens', desc: 'Cuisine authentique', icon: 'i-heroicons-globe-alt', color: 'bg-green-100', iconColor: 'text-green-600' },
+  { text: 'Guide MICHELIN à Paris', desc: 'Excellence française', icon: 'i-heroicons-map-pin', color: 'bg-blue-100', iconColor: 'text-blue-600' },
+  { text: 'Restaurants gastronomiques végétariens', desc: 'Gourmet végétal', icon: 'i-heroicons-leaf', color: 'bg-emerald-100', iconColor: 'text-emerald-600' },
+  { text: 'Spécialités fruits de mer', desc: 'Produits frais', icon: 'i-heroicons-fish', color: 'bg-cyan-100', iconColor: 'text-cyan-600' },
+  { text: 'Restaurants avec carte des vins', desc: 'Accords parfaits', icon: 'i-heroicons-wine', color: 'bg-purple-100', iconColor: 'text-purple-600' },
 ]
 
 const { streamChat } = useChatStream()
@@ -424,7 +424,7 @@ async function handleSubmit() {
       onStep: (step, status, message) => {
         currentMessage.loading = false
         if (step === 'error') {
-          currentMessage.content = `Error: ${message}`
+          currentMessage.content = `Erreur : ${message}`
         }
       },
       onProgress: (step, progress, message) => {
@@ -450,12 +450,12 @@ async function handleSubmit() {
       },
       onError: (error) => {
         currentMessage.loading = false
-        currentMessage.content = `Sorry, I encountered an error: ${error}`
+        currentMessage.content = `Désolé, une erreur s'est produite : ${error}`
       }
     })
   } catch (error) {
     currentMessage.loading = false
-    currentMessage.content = `Connection error. Please make sure the backend server is running.`
+    currentMessage.content = `Erreur de connexion. Assurez-vous que le serveur backend est en cours d'exécution.`
   } finally {
     isLoading.value = false
   }
