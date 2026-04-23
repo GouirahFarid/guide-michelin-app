@@ -19,16 +19,10 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
-  // Nitro dev proxy for Nuxt 4 (replaces vite.server.proxy)
-  nitro: {
-    devProxy: {
-      '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
-        // Don't proxy websocket upgrades (SSE uses standard HTTP)
-        websocket: false
-      }
+  // Route rules for API proxy
+  routeRules: {
+    '/api/**': {
+      proxy: { to: 'http://localhost:8000/**' }
     }
   },
 
