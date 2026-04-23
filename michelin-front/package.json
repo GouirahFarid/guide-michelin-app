@@ -16,9 +16,14 @@
     "@nuxt/ui": "^4.6.1",
     "@nuxtjs/i18n": "^10.2.4",
     "@pinia/nuxt": "^0.11.3",
+    "@tailwindcss/typography": "^0.5.19",
+    "dompurify": "^3.4.1",
     "nuxt": "^4.4.2",
     "nuxt-mapbox": "^1.6.4",
     "vue": "^3.5.32",
     "vue-router": "^5.0.4"
+  },
+  "devDependencies": {
+    "@types/dompurify": "^3.0.5"
   }
 }

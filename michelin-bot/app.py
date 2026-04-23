@@ -2,10 +2,13 @@
 FastAPI application for Michelin restaurant RAG system.
 
 Provides REST API endpoints for restaurant queries and recommendations.
+
+Now with LangGraph multi-step workflow and structured SSE events for Nuxt UI.
 """
 import json
 import logging
 import time
+import uuid
 from contextlib import asynccontextmanager
 from typing import Optional, Dict
 
@@ -15,8 +18,8 @@ from fastapi.responses import JSONResponse
 from sse_starlette.sse import EventSourceResponse
 
 from config import get_settings
-from langchain_agent import create_langchain_michelin_agent
-from models import HealthResponse, ErrorResponse
+from langgraph_streaming import stream_workflow_execution
+from models import HealthResponse, ErrorResponse, ChatMessage
 
 # Configure logging
 logging.basicConfig(
@@ -26,7 +29,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 settings = get_settings()
-agent = None  # LangChain Michelin agent
+
+# Session storage (in-memory)
+sessions: Dict[str, list] = {}
+session_timestamps: Dict[str, float] = {}
+SESSION_TIMEOUT = 3600  # 1 hour
 
 
 # ============================================================================
@@ -36,19 +43,10 @@ agent = None  # LangChain Michelin agent
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifespan."""
-    global agent
-
     # Startup
-    print("[MichelinBot] Starting API (LangChain + Streaming Mode)...")
+    print("[MichelinBot] Starting API (LangGraph + Enhanced Streaming Mode)...")
     print("[LLM] Using ZhipuAI glm-5.1 with OpenAI-compatible endpoint")
-
-    # Initialize LangChain Michelin agent
-    agent = create_langchain_michelin_agent(
-        model="glm-5.1",
-        temperature=0.7,
-        streaming=True
-    )
-    print("[Agent] LangChain Michelin agent initialized")
+    print("[Workflow] LangGraph multi-step workflow enabled")
 
     # Track start time
     app.state.start_time = time.time()
@@ -135,7 +133,7 @@ async def health_check():
 
 
 # ============================================================================
-# STREAMING CHAT ENDPOINT
+# STREAMING CHAT ENDPOINT (ENHANCED WITH LANGGRAPH)
 # ============================================================================
 
 @app.get("/chat/stream", tags=["Chat"])
@@ -145,56 +143,55 @@ async def chat_stream(
     user_lat: Optional[float] = Query(None, description="User latitude"),
     user_lon: Optional[float] = Query(None, description="User longitude")
 ):
-    """Streaming chat endpoint using Server-Sent Events (SSE).
+    """Streaming chat endpoint using Server-Sent Events (SSE) with LangGraph workflow.
 
-    Returns restaurant recommendations as streaming tokens for real-time display.
+    Event Types:
+    - step_start: A workflow step is starting
+    - progress: Progress update (0.0-1.0)
+    - query_analysis: Query analysis results (location, cuisine, award detected)
+    - location_detected: Location extracted from query or user coordinates
+    - token: Response text token (backward compatibility)
+    - step_complete: A workflow step completed
+    - done: Stream complete with summary
+    - error: Error occurred
 
     Example:
-        curl "http://localhost:8003/chat/stream?query=Best%20restaurants%20in%20Munich"
+        curl -N "http://localhost:8000/chat/stream?query=Best%20restaurants%20in%20Munich"
     """
-    global agent
+    # Prepare user location
+    user_location = None
+    if user_lat is not None and user_lon is not None:
+        user_location = {
+            "latitude": user_lat,
+            "longitude": user_lon,
+        }
+
+    # Get conversation history for this session
+    history = None
+    if session_id and session_id in sessions:
+        history = sessions[session_id]
 
     async def event_generator():
         """Generate SSE events for streaming response."""
+        nonlocal session_id
+
         try:
-            # Prepare user location
-            user_location = None
-            if user_lat is not None and user_lon is not None:
-                user_location = {
-                    "latitude": user_lat,
-                    "longitude": user_lon,
-                }
-
-            # Get conversation history for this session
-            history = None
-            if session_id and session_id in sessions:
-                history = [
-                    {"role": msg.role, "content": msg.content}
-                    for msg in sessions[session_id]
-                ]
-
-            # Stream response from LangChain agent
-            full_response = ""
-            async for token in agent.chat_stream(
+            # Stream workflow execution
+            async for event in stream_workflow_execution(
                 query=query,
                 user_location=user_location,
+                session_id=session_id,
                 conversation_history=history
             ):
-                full_response += token
-                # Send SSE event with the token
-                yield {
-                    "event": "token",
-                    "data": json.dumps({"content": token}, ensure_ascii=False)
-                }
+                # Update session ID from response
+                if event.get("event") == "done":
+                    try:
+                        data = json.loads(event.get("data", "{}"))
+                        session_id = data.get("session_id", session_id)
+                    except:
+                        pass
 
-            # Send completion event
-            yield {
-                "event": "done",
-                "data": json.dumps({
-                    "session_id": session_id or str(uuid.uuid4()),
-                    "response_length": len(full_response)
-                }, ensure_ascii=False)
-            }
+                yield event
 
         except Exception as e:
             logger.error(f"Streaming error: {type(e).__name__}: {e}", exc_info=True)

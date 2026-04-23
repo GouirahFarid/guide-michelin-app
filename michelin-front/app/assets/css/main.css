@@ -1,0 +1,11 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@import "@nuxt/ui";
+
+:root {
+  --ui-michelin-red: #ba0b2f;
+  --ui-michelin-black: #191919;
+  --ui-michelin-dark-gray: #757575;
+  --ui-michelin-light-gray: #d2d2d2;
+  /* --ui-michelin-red: #BA0B2F; */
+}
