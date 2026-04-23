@@ -18,7 +18,7 @@
           d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
         />
       </svg>
-      <span>Home</span>
+      <span>Accueil</span>
     </NuxtLink>
     <NuxtLink to="/explore">
       <svg
@@ -38,7 +38,7 @@
           d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"
         />
       </svg>
-      <span>Explore</span>
+      <span>Explorer</span>
     </NuxtLink>
     <NuxtLink to="/assistant">
       <svg
@@ -75,7 +75,7 @@
         <path d="m21 21-4.34-4.34" />
         <circle cx="11" cy="11" r="8" />
       </svg>
-      <span>Creators</span>
+      <span>Créateurs</span>
     </NuxtLink>
     <NuxtLink to="/profile">
       <svg
@@ -93,7 +93,7 @@
         <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
         <circle cx="12" cy="7" r="4" />
       </svg>
-      <span>Profile</span>
+      <span>Profil</span>
     </NuxtLink>
   </nav>
 </template>

@@ -1,17 +1,16 @@
 """
-Prompt templates for the MichelinBot RAG system.
+Prompt templates for the MichelinBot LLM system.
 
-This module contains all prompt templates using best practices:
+This module contains prompts using best practices:
 - CRISPE framework for system prompts
-- Chain-of-Thought for reasoning
 - Few-shot examples for complex queries
 - Guardrails for safety
 - Geolocation-aware prompts
 """
 from typing import List, Dict, Any
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import SystemMessage
-from geolocation import CITY_COORDINATES  # Import from geolocation module
+from geolocation import CITY_COORDINATES
 
 
 # ============================================================================
@@ -19,6 +18,8 @@ from geolocation import CITY_COORDINATES  # Import from geolocation module
 # ============================================================================
 
 MICHELIN_GUIDE_SYSTEM_PROMPT = """You are MICHELIN_GUIDE, an expert AI assistant specializing in Michelin-rated restaurants.
+
+**IMPORTANT: Always respond in French.** All your answers must be in French language.
 
 ## CAPACITY & ROLE
 You have comprehensive knowledge of:
@@ -36,8 +37,8 @@ You have comprehensive knowledge of:
 - Culturally aware of global dining traditions
 
 ## CORE PRINCIPLES
-1. **Accuracy First**: Only use information from the provided context
-2. **Transparency**: Cite sources when recommending restaurants
+1. **Accuracy First**: Provide accurate information based on your knowledge
+2. **Transparency**: Be clear about the source of your recommendations
 3. **Helpfulness**: Suggest alternatives if exact match isn't found
 4. **Context Awareness**: Remember user preferences within conversation
 5. **Respect**: Honor different cuisines and culinary traditions
@@ -46,7 +47,7 @@ You have comprehensive knowledge of:
 When recommending restaurants, structure your response as:
 - Brief summary matching their criteria
 - Restaurant recommendations with key details (name, location, award, cuisine)
-- Specific highlights from descriptions
+- Specific highlights and descriptions
 - Practical information (price range, contact if relevant)
 
 If you cannot find relevant information, clearly state this and suggest:
@@ -64,132 +65,53 @@ If you cannot find relevant information, clearly state this and suggest:
 
 
 # ============================================================================
-# RAG PROMPT TEMPLATES (Chain-of-Thought)
-# ============================================================================
-
-RAG_CHAIN_OF_THOUGHT_TEMPLATE = """
-## User Question
-{question}
-
-## Retrieved Restaurant Context
-{context}
-
-## Instructions
-Think step-by-step to provide an excellent recommendation:
-
-1. **Analyze the Request**: What is the user looking for?
-   - Location preference (city, region, "near me")
-   - Cuisine type or specific dishes
-   - Award level (stars, Bib Gourmand)
-   - Price range (€ to €€€€)
-   - Special requirements (views, garden, accessibility, etc.)
-
-2. **Filter Results**: Which restaurants from the context match?
-   - Direct matches (all criteria met)
-   - Partial matches (most criteria met)
-   - Close alternatives (worth mentioning)
-
-3. **Formulate Response**:
-   - Start with a direct answer
-   - Present matching restaurants with highlights
-   - Mention why each recommendation fits their criteria
-   - Include practical details (location, contact, price)
-   - Note any special features (views, garden, historic setting)
-
-4. **Quality Check**:
-   - Did I answer the specific question?
-   - Are all facts from the provided context?
-   - Did I cite sources properly?
-   - Is the tone appropriate?
-
-## Your Response:
-"""
-
-
-RAG_SIMPLE_TEMPLATE = """Answer the question based only on the following context:
-
-{context}
-
-Question: {question}
-
-Answer:"""
-
-
-# ============================================================================
-# QUERY EXPANSION PROMPTS
-# ============================================================================
-
-QUERY_EXPANSION_TEMPLATE = """You are a query expansion specialist for a Michelin restaurant search engine.
-
-Given the user's query, generate 3-5 alternative queries that might help find better results.
-
-## Consider:
-- **Synonyms**: "fine dining" → "gastronomy", "haute cuisine", "gourmet"
-- **Related terms**: "romantic" → "intimate", "views", "garden", "quiet"
-- **Broader terms**: "3 stars" → "Michelin starred", "fine dining", "awarded"
-- **Specific terms**: "Japanese" → "sushi", "kaiseki", "Asian contemporary"
-- **Location variants**: "Germany" → "German", "Deutschland", city names
-
-## User Query: {query}
-
-## Alternative Queries (JSON array of strings):
-"""
-
-
-# ============================================================================
 # FEW-SHOT EXAMPLES
 # ============================================================================
 
 FEW_SHOT_EXAMPLES = """
-## Example 1
-User: "Romantic anniversary dinner near Munich"
-Assistant: Based on your request for a romantic anniversary dinner near Munich, I found these exceptional options:
+## Exemple 1
+User: "Dîner d'anniversaire romantique près de Munich"
+Assistant: Pour votre dîner d'anniversaire romantique près de Munich, voici des options exceptionnelles :
 
-🌟 **Tohru in der Schreiberei** (Munich) - 3 Stars
-- Why it's perfect: Historic location with intimate atmosphere, chef's personal touch
-- Cuisine: Japanese-French fusion with exceptional precision
-- Highlight: Spectacular aperitif tour and kitchen visits in Munich's oldest town house
-- Contact: +49 89 21529172
+🌟 **Tohru in der Schreiberei** (Munich) - 3 Étoiles
+- Pourquoi c'est parfait : Lieu historique avec atmosphère intime, touche personnelle du chef
+- Cuisine : Fusion japonais-français avec une précision exceptionnelle
+- Point fort : Tour apéritif spectaculaire et visites de cuisine dans la plus ancienne maison de Munich
+- Contact : +49 89 21529172
 
-🌟 **ES:SENZ** (Grassau, 40km from Munich) - 3 Stars
-- Why it's perfect: Floor-to-ceiling garden views, elegant yet relaxed
-- Cuisine: Modern creations with regional and international influences
-- Highlight: Bavarian charm with world-class service, sauc
-es left at table
-- Contact: +49 8641 401609
+🌟 **ES:SENZ** (Grassau, 40km de Munich) - 3 Étoiles
+- Pourquoi c'est parfait : Vues sur le jardin de sol à plafond, élégant mais décontracté
+- Cuisine : Créations modernes aux influences régionales et internationales
+- Point fort : Charme bavarois avec service de classe mondiale, sauces laissées à table
+- Contact : +49 8641 401609
 
-## Example 2
-User: "Best Japanese restaurants with Michelin stars"
-Assistant: Here are outstanding Japanese dining options in the Michelin guide:
+## Exemple 2
+User: "Meilleurs restaurants japonais avec des étoiles Michelin"
+Assistant: Voici d'excellentes options japonaises dans le guide MICHELIN :
 
-🍣 **Tohru in der Schreiberei** (Munich) - 3 Stars, €€€€
-- Munich-born chef bridges Japanese and French cuisines
-- Standout: Koshihikari rice with trout caviar and wasabi
-- Notable: Impressive sake selection
+🍣 **Tohru in der Schreiberei** (Munich) - 3 Étoiles, €€€€
+- Chef né à Munich fait le pont entre cuisines japonaise et française
+- Signature : Riz Koshihikari avec œufs de truite et wasabi
+- Notable : Impressionnante sélection de sakés
 
-🍣 **IKIGAI** (Krün) - 2 Stars, €€€€
-- Japanese-Asian contemporary in Schloss Elmau
-- Highlight: Tristan rock lobster binchotan BBQ
-- Setting: Luxury hotel with mountain views
+🍣 **IKIGAI** (Krün) - 2 Étoiles, €€€€
+- Japonais-asiatique contemporain au Schloss Elmau
+- Point fort : Homard Tristan au barbecue binchotan
+- Cadre : Hôtel de luxe avec vues montagneuses
 
-🍣 **Intense** (Wachenheim) - 2 Stars, €€€€
-- Unique fusion of Palatinate and Japanese cuisines
-- Highlight: "Izakaya-style" pigeon with sesame
-- Special: Homemade Bienenstich (bee sting cake)
+## Exemple 3
+User: "Restaurants végétariens gastronomiques avec Étoile Verte"
+Assistant: D'excellentes options durables et végétariennes :
 
-## Example 3
-User: "Vegetarian fine dining with Green Star"
-Assistant: Excellent sustainable and vegetarian options:
+🌱 **Geranium** (Copenhague) - 3 Étoiles, Étoile Verte, €€€€
+- Premier restaurant 3 étoiles entièrement sans viande
+- Philosophie : Légumes biodynamiques, plantes sauvages, fruits de mer non menacés
+- Cadre : 8ème étape du stade Parken avec vues panoramiques
 
-🌱 **Geranium** (Copenhagen) - 3 Stars, Green Star, €€€€
-- The world's first 3-star restaurant to be fully meat-free
-- Philosophy: Biodynamic vegetables, foraged plants, non-endangered seafood
-- Setting: 8th floor of Parken Stadium with panoramic views
-
-🌱 **Rutz** (Berlin) - 3 Stars, Green Star, €€€€
-- Exceptional vegetarian tasting menu available
-- Focus: Regional, sustainable sourcing
-- Highlight: Terrace dining in season
+🌱 **Rutz** (Berlin) - 3 Étoiles, Étoile Verte, €€€€
+- Menu dégustation végétarien exceptionnel
+- Focus : Approvisionnement régional et durable
+- Point fort : Terrasse en saison
 """
 
 
@@ -198,25 +120,23 @@ Assistant: Excellent sustainable and vegetarian options:
 # ============================================================================
 
 GUARDRAILS_TEMPLATE = """
-## Important Constraints
-- NEVER invent restaurant information not in context
-- If no exact match, say so and suggest closest alternatives
-- ALWAYS mention the source of your information
-- If user asks for reservations, clarify you cannot book (only provide info)
-- For pricing, mention it may change—verify with restaurant
-- Respect that Michelin ratings change annually
+## Contraintes importantes
+- N'inventez JAMAIS d'informations sur les restaurants
+- Si aucune correspondance exacte, dites-le et suggérez les alternatives les plus proches
+- Si l'utilisateur demande des réservations, précisez que vous ne pouvez pas réserver (fournir uniquement des infos)
+- Pour les prix, mentionnez qu'ils peuvent changer—vérifiez avec le restaurant
+- Respectez le fait que les classifications MICHELIN changent annuellement
 
-## Handling Edge Cases
-- **No results found**: "I couldn't find exact matches. Would you like me to..."
-- **Ambiguous query**: Ask clarifying question (e.g., "Which city are you interested in?")
-- **Conflicting criteria**: Explain trade-offs (e.g., "No 3-star restaurants under €€")
-- **Outdated info**: Remind user to verify current status directly
+## Gestion des cas particuliers
+- **Aucun résultat trouvé** : "Je n'ai pas trouvé de correspondances exactes. Voulez-vous que je..."
+- **Requête ambiguë** : Posez une question de clarification (ex: "Dans quelle ville êtes-vous intéressé ?")
+- **Critères contradictoires** : Expliquez les compromis (ex: "Aucun restaurant 3 étoiles sous €€")
 
-## What to Avoid
-- Do not claim to have real-time availability
-- Do not make reservations promises
-- Do not invent menu items or chef details not in context
-- Do not provide current pricing without caveat
+## À éviter
+- Ne prétendez pas avoir une disponibilité en temps réel
+- Ne faites pas de promesses de réservation
+- N'inventez pas de plats ou de détails sur le chef
+- Ne fournissez pas de prix actuels sans mise en garde
 """
 
 
@@ -243,109 +163,24 @@ Identify:
 """
 
 
-GEOLOCATION_RESPONSE_TEMPLATE = """
-## 📍 Restaurants Near {location}
-
-Found {count} restaurants within {radius}km of your location:
-
-{restaurants}
-
-💡 **Tip**: Distances are approximate. Always check exact location and verify current status before visiting.
-"""
-
-
 # ============================================================================
 # LANGCHAIN PROMPT TEMPLATES
 # ============================================================================
 
-def create_rag_prompt() -> ChatPromptTemplate:
-    """Create RAG prompt with system message and placeholders."""
+def create_chat_prompt() -> ChatPromptTemplate:
+    """Create chat prompt with system message."""
     return ChatPromptTemplate.from_messages([
         ("system", MICHELIN_GUIDE_SYSTEM_PROMPT + "\n\n" + GUARDRAILS_TEMPLATE),
-        ("human", RAG_CHAIN_OF_THOUGHT_TEMPLATE),
-    ])
-
-
-def create_simple_rag_prompt() -> ChatPromptTemplate:
-    """Create simple RAG prompt for quick responses."""
-    return ChatPromptTemplate.from_messages([
-        ("system", MICHELIN_GUIDE_SYSTEM_PROMPT),
-        ("human", RAG_SIMPLE_TEMPLATE),
+        ("human", "{query}"),
     ])
 
 
 def create_condensed_prompt() -> ChatPromptTemplate:
     """Create condensed prompt for faster responses."""
     return ChatPromptTemplate.from_messages([
-        ("system", """You are a helpful Michelin restaurant guide. Answer based only on the provided context. If you don't know, say so."""),
-        ("human", "Context: {context}\n\nQuestion: {question}"),
+        ("system", """You are a helpful Michelin restaurant guide. Provide clear, accurate recommendations."""),
+        ("human", "{query}"),
     ])
-
-
-# ============================================================================
-# CONTEXT FORMATTING
-# ============================================================================
-
-def format_context(docs: List[Any]) -> str:
-    """Format retrieved documents with clear structure for LLM consumption."""
-    if not docs:
-        return "No restaurant information found in the database."
-
-    formatted_chunks = []
-    for i, doc in enumerate(docs, 1):
-        metadata = doc.get("metadata", {}) if isinstance(doc, dict) else getattr(doc, "metadata", {})
-        content = doc.get("page_content", "") if isinstance(doc, dict) else getattr(doc, "page_content", "")
-
-        formatted_chunks.append(f"""---
-**Restaurant {i}**
-**Name**: {metadata.get('name', 'Unknown')}
-**Location**: {metadata.get('location', 'N/A')}
-**Award**: {metadata.get('award', 'N/A')}
-**Cuisine**: {metadata.get('cuisine', 'N/A')}
-**Price**: {metadata.get('price', 'N/A')}
-
-**Description**:
-{content[:500]}{'...' if len(content) > 500 else ''}
-
-**Facilities**: {metadata.get('facilities_and_services', 'Not specified')}
----
-""")
-
-    return "\n".join(formatted_chunks)
-
-
-def format_restaurant_summary(restaurant: Dict[str, Any]) -> str:
-    """Format a single restaurant for display."""
-    return f"""
-**{restaurant.get('name', 'Unknown')}**
-- Location: {restaurant.get('location', 'N/A')}
-- Award: {restaurant.get('award', 'N/A')}
-- Cuisine: {restaurant.get('cuisine', 'N/A')}
-- Price: {restaurant.get('price', 'N/A')}
-- Distance: {restaurant.get('distance_km', 'N/A')}km away
-"""
-
-
-def format_geo_results(restaurants: List[Dict[str, Any]], location: str, radius: float) -> str:
-    """Format geolocation search results."""
-    if not restaurants:
-        return f"No restaurants found within {radius}km of {location}."
-
-    restaurant_list = []
-    for r in restaurants[:10]:  # Limit to top 10
-        distance = r.get('distance_km', 0)
-        restaurant_list.append(f"""**{r.get('name', 'Unknown')}** - {distance:.1f}km
-- Award: {r.get('award', 'N/A')} | Cuisine: {r.get('cuisine', 'N/A')}
-- Address: {r.get('address', 'N/A')}
-- Highlight: {(r.get('description', '')[:100] + '...') if r.get('description') else 'See full details'}
-""")
-
-    return GEOLOCATION_RESPONSE_TEMPLATE.format(
-        location=location,
-        count=len(restaurants),
-        radius=radius,
-        restaurants="\n".join(restaurant_list)
-    )
 
 
 # ============================================================================
@@ -373,8 +208,7 @@ def format_chat_history(messages: List[Any]) -> str:
 def analyze_query(query: str) -> Dict[str, Any]:
     """Analyze user query to extract filters and intent.
 
-    This is a lightweight rule-based analysis. For production,
-    consider using the LLM for more sophisticated parsing.
+    This is a lightweight rule-based analysis.
     """
     query_lower = query.lower()
 

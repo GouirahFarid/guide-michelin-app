@@ -2,10 +2,10 @@
 LangChain-based Michelin Guide agent with streaming support.
 
 Uses ChatOpenAI with the ZhipuAI-compatible API endpoint.
+Integrated with LangChain BufferMemory for conversation management.
 """
 import logging
 from typing import Dict, Any, Optional, List, AsyncIterator
-import os
 
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
@@ -14,6 +14,7 @@ from langchain_core.outputs import LLMResult
 from pydantic import BaseModel
 
 from config import get_settings
+from memory import memory_store
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -277,29 +278,50 @@ Please provide your recommendations in this format:
         # Build messages
         messages = self._build_messages(query, location_context, conversation_history)
 
-        # Get response
+        # Get response using astream_events
+        response_text = ""
+
         if self.streaming and stream_callback:
-            # Streaming mode
-            response_text = ""
-            callback = StreamingCallbackHandler()
+            # Streaming mode with astream_events
+            try:
+                async for event in self.llm.astream_events(
+                    messages,
+                    version="v1",
+                    config={"run_name": "michelin_agent_stream"}
+                ):
+                    if event["event"] == "on_chat_model_stream":
+                        chunk = event["data"].get("chunk")
+                        if chunk and hasattr(chunk, 'content'):
+                            content = chunk.content
+                            if content:
+                                token = str(content)
+                                response_text += token
+                                await stream_callback(token)
+                    elif event["event"] == "on_chat_model_end":
+                        logger.info("Agent streaming completed")
 
-            async for chunk in self.llm.astream(messages):
-                if hasattr(chunk, 'content'):
-                    token = chunk.content
-                    response_text += token
-                    await stream_callback(token)
+                # If we didn't get content, try fallback
+                if not response_text:
+                    logger.warning("No content from astream_events, using fallback")
+                    async for chunk in self.llm.astream(messages):
+                        if hasattr(chunk, 'content'):
+                            token = chunk.content
+                            response_text += token
+                            await stream_callback(token)
 
-            response_text = response_text or "".join(callback.tokens)
+            except Exception as e:
+                logger.warning(f"Streaming failed: {e}, using non-streaming fallback")
+                response = await self.llm.ainvoke(messages)
+                response_text = response.content
+                await stream_callback(response_text) if stream_callback else None
 
         else:
             # Non-streaming mode
             response = await self.llm.ainvoke(messages)
             response_text = response.content
 
-        # Handle reasoning models (glm-5.1 puts content in reasoning_content)
+        # Handle reasoning models
         if not response_text.strip() or response_text.strip().startswith("1."):
-            # The model might have returned reasoning instead of content
-            # Re-invoke with simpler prompt
             messages = [
                 SystemMessage(content="You are a helpful Michelin Guide assistant. Provide concise restaurant recommendations."),
                 HumanMessage(content=query)
@@ -365,30 +387,49 @@ Please provide your recommendations in this format:
         # Build messages
         messages = self._build_messages(query, location_context, conversation_history)
 
-        # Stream response - filter out empty chunks
+        # Stream response using astream_events
         chunks_received = False
+
         try:
-            async for chunk in self.llm.astream(messages):
-                chunks_received = True
-                # Handle different chunk types from ZhipuAI/OpenAI-compatible APIs
-                content = ""
-                if hasattr(chunk, 'content'):
-                    content = chunk.content
-                elif hasattr(chunk, 'text'):
-                    content = chunk.text
-                elif isinstance(chunk, str):
-                    content = chunk
+            async for event in self.llm.astream_events(
+                messages,
+                version="v1",
+                config={"run_name": "michelin_agent_chat_stream"}
+            ):
+                if event["event"] == "on_chat_model_stream":
+                    chunk = event["data"].get("chunk")
+                    if chunk and hasattr(chunk, 'content'):
+                        content = chunk.content
+                        if content:
+                            chunks_received = True
+                            yield str(content)
 
-                # Only yield non-empty content
-                if content:
-                    logger.debug(f"Stream chunk: {repr(content[:50])}")
-                    yield content
+                elif event["event"] == "on_chat_model_end":
+                    logger.info("Agent chat stream completed")
+
         except Exception as e:
-            logger.warning(f"Streaming failed: {e}, falling back to non-streaming")
+            logger.warning(f"astream_events failed: {e}, falling back to astream")
 
-        # Fallback: if no chunks received, use non-streaming
+            # Fallback to simple astream
+            try:
+                async for chunk in self.llm.astream(messages):
+                    content = ""
+                    if hasattr(chunk, 'content'):
+                        content = chunk.content
+                    elif hasattr(chunk, 'text'):
+                        content = chunk.text
+                    elif isinstance(chunk, str):
+                        content = chunk
+
+                    if content:
+                        chunks_received = True
+                        yield content
+            except Exception as e2:
+                logger.error(f"Streaming also failed: {e2}")
+
+        # Fallback if no chunks
         if not chunks_received:
-            logger.info("No streaming chunks received, using non-streaming fallback")
+            logger.info("No streaming chunks, using invoke")
             response = await self.llm.ainvoke(messages)
             if hasattr(response, 'content'):
                 yield response.content

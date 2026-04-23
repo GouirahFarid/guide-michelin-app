@@ -1,3 +1,8 @@
+# Environment files (SECRET!)
+.env
+.env.*
+!.env.example
+
 # Python
 __pycache__/
 *.py[cod]
@@ -38,13 +43,7 @@ env/
 Thumbs.db
 
 # Project specific
-.env
-.env.*
-!.env.example
 *.log
 data/
 *.db
 *.sqlite
-
-# Claude
-.claude/

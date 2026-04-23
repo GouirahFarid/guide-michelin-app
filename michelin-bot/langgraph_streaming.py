@@ -163,12 +163,6 @@ async def stream_workflow_execution(
         # Create LLM for streaming
         llm = create_llm_for_streaming()
 
-        # Stream the response token by token
-        full_response = ""
-        chunks_received = False
-        token_count = 0
-        max_tokens = 2000  # Safety limit
-
         # Ensure messages is a valid list
         messages = state.get("messages", [])
         if not messages:
@@ -176,35 +170,51 @@ async def stream_workflow_execution(
             from langchain_core.messages import HumanMessage
             messages = [HumanMessage(content=state.get("query", "Hello"))]
 
+        # Stream using astream_events for structured event access
+        full_response = ""
+        max_tokens = 2000  # Safety limit
+        token_count = 0
+
         try:
-            async for chunk in llm.astream(messages):
-                chunks_received = True
-                content = getattr(chunk, 'content', None) or ""
-                if content:
-                    full_response += str(content)
-                    token_count += 1
-                    yield create_token_event(str(content))
-                    if token_count >= max_tokens:
-                        logger.warning(f"Max tokens ({max_tokens}) reached, stopping stream")
-                        break
+            # Use astream_events for better structured streaming
+            async for event in llm.astream_events(
+                messages,
+                version="v1",
+                config={"run_name": "michelin_llm_stream"}
+            ):
+                event_type = event["event"]
+
+                # Handle token generation events
+                if event_type == "on_chat_model_stream":
+                    chunk = event["data"].get("chunk")
+                    if chunk and hasattr(chunk, 'content'):
+                        content = chunk.content
+                        if content:
+                            full_response += str(content)
+                            token_count += 1
+                            yield create_token_event(str(content))
+
+                        if token_count >= max_tokens:
+                            logger.warning(f"Max tokens ({max_tokens}) reached, stopping stream")
+                            break
+
+                # Handle completion
+                elif event_type == "on_chat_model_end":
+                    logger.info("LLM streaming completed successfully")
+
         except Exception as e:
-            logger.warning(f"Streaming failed: {type(e).__name__}: {e}, using fallback", exc_info=True)
-            # Fallback: invoke without streaming
+            logger.warning(f"astream_events failed: {type(e).__name__}: {e}, falling back to astream", exc_info=True)
+            # Fallback to simple astream
             try:
-                response = await llm.ainvoke(messages)
-                content = getattr(response, 'content', None) or str(response)
-                full_response = str(content)
-                yield create_token_event(full_response)
+                async for chunk in llm.astream(messages):
+                    content = getattr(chunk, 'content', None) or ""
+                    if content:
+                        full_response += str(content)
+                        yield create_token_event(str(content))
             except Exception as e2:
                 logger.error(f"LLM invoke also failed: {type(e2).__name__}: {e2}", exc_info=True)
                 full_response = "I apologize, but I'm having trouble generating a response right now. Please try again."
                 yield create_token_event(full_response)
-
-        # If no chunks received, provide fallback
-        if not chunks_received:
-            logger.warning("No chunks received from stream, using fallback")
-            full_response = "I apologize, but I'm having trouble generating a response right now. Please try again."
-            yield create_token_event(full_response)
 
         state["generated_response"] = full_response or ""
         # Ensure messages is a list before appending

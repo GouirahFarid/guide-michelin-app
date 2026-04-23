@@ -7,7 +7,7 @@
         props.buttonClass,
         isOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100'
       ]"
-      aria-label="Open chat"
+      aria-label="Ouvrir le chat"
       @click="toggleChat"
     >
       <div class="relative">
@@ -62,15 +62,15 @@
                 <span class="text-white text-xs font-bold">M</span>
               </div>
               <div>
-                <p class="font-semibold text-sm">Michelin Guide</p>
-                <p class="text-xs text-white/80">AI Assistant</p>
+                <p class="font-semibold text-sm">Guide MICHELIN</p>
+                <p class="text-xs text-white/80">Assistant IA</p>
               </div>
             </div>
             <div class="flex items-center gap-1">
               <button
                 class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/20 transition-colors"
                 @click="showQuickAssist = !showQuickAssist"
-                title="Quick suggestions"
+                title="Suggestions rapides"
               >
                 <UIcon name="i-heroicons-light-bulb" class="w-5 h-5" />
               </button>
@@ -96,7 +96,7 @@
               v-if="showQuickAssist"
               class="px-4 py-3 bg-red-50 border-b border-red-100 shrink-0"
             >
-              <p class="text-xs font-medium text-red-800 mb-2">Quick suggestions:</p>
+              <p class="text-xs font-medium text-red-800 mb-2">Suggestions rapides :</p>
               <div class="flex flex-wrap gap-2">
                 <button
                   v-for="quick in quickAssistOptions"
@@ -118,8 +118,8 @@
                 <div class="w-12 h-12 bg-gradient-to-br from-red-600 to-red-700 rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
                   <span class="text-white text-lg font-bold">M</span>
                 </div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">Hi there!</h3>
-                <p class="text-sm text-gray-600 mb-6">Ask me about Michelin restaurants anywhere</p>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Bonjour !</h3>
+                <p class="text-sm text-gray-600 mb-6">Demandez-moi des restaurants du Guide MICHELIN partout dans le monde</p>
                 <div class="grid grid-cols-1 gap-2">
                   <button
                     v-for="suggestion in suggestions"
@@ -249,7 +249,7 @@
                   @keydown.enter.exact.prevent="handleSubmit"
                   @keydown.enter.shift.prevent="() => form.query += '\n'"
                   rows="1"
-                  placeholder="Ask about restaurants..."
+                  placeholder="Posez une question sur les restaurants..."
                   class="flex-1 resize-none bg-transparent border-0 focus:ring-0 focus:outline-none text-sm text-gray-900 placeholder:text-gray-400 py-2 px-1 max-h-24 overflow-y-auto"
                   :class="{ 'text-gray-400': isLoading }"
                   @input="autoResize"
@@ -277,7 +277,7 @@
                   </span>
                   /500
                 </span>
-                <span class="text-xs text-gray-400">Enter to send</span>
+                <span class="text-xs text-gray-400">Entrée pour envoyer</span>
               </div>
             </div>
           </div>
@@ -345,7 +345,7 @@ interface Message {
 const messages = ref<Message[]>([
   {
     role: 'assistant',
-    content: 'Hi! I\'m your Michelin Guide assistant. Ask me about restaurants anywhere in the world!',
+    content: 'Bonjour ! Je suis votre assistant du Guide MICHELIN. Demandez-moi des restaurants partout dans le monde !',
   }
 ])
 
@@ -354,18 +354,18 @@ const form = reactive({
 })
 
 const suggestions = [
-  'Best restaurants in Paris',
-  '3 stars near me',
-  'Romantic dinner spots',
-  'Bib Gourmand recommendations'
+  'Meilleurs restaurants à Paris',
+  '3 étoiles près de moi',
+  'Endros pour dîner romantique',
+  'Recommandations Bib Gourmand'
 ]
 
 const quickAssistOptions = [
-  { label: '🌟 3 Stars', text: '3-star restaurants near me' },
-  { label: '💑 Romantic', text: 'Romantic dinner spots' },
-  { label: '😋 Bib Gourmand', text: 'Bib Gourmand recommendations' },
-  { label: '🍝 Italian', text: 'Best Italian restaurants' },
-  { label: '🍣 Sushi', text: 'Top-rated sushi places' },
+  { label: '🌟 3 Étoiles', text: '3 étoiles près de moi' },
+  { label: '💑 Romantique', text: 'Endros pour dîner romantique' },
+  { label: '😋 Bib Gourmand', text: 'Recommandations Bib Gourmand' },
+  { label: '🍝 Italien', text: 'Meilleurs restaurants italiens' },
+  { label: '🍣 Sushi', text: 'Meilleurs restaurants de sushi' },
 ]
 
 // Auto-resize textarea
@@ -425,7 +425,7 @@ async function handleSubmit() {
       onStep: (step, status, message) => {
         currentMessage.loading = false
         if (step === 'error') {
-          currentMessage.content = `Error: ${message}`
+          currentMessage.content = `Erreur : ${message}`
         }
       },
       onProgress: (step, progress, message) => {
@@ -451,12 +451,12 @@ async function handleSubmit() {
       },
       onError: (error) => {
         currentMessage.loading = false
-        currentMessage.content = `Sorry, I encountered an error: ${error}`
+        currentMessage.content = `Désolé, une erreur s'est produite : ${error}`
       }
     })
   } catch (error) {
     currentMessage.loading = false
-    currentMessage.content = `Connection error. Please try again.`
+    currentMessage.content = `Erreur de connexion. Veuillez réessayer.`
   } finally {
     isLoading.value = false
   }

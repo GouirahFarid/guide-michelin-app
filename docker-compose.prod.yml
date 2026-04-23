@@ -1,38 +1,23 @@
 services:
-  postgres:
-    image: pgvector/pgvector:pg16
-    container_name: michelinbot-db-prod
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - michelin-network
-    restart: always
-
   api:
     build:
       context: ./michelin-bot
       dockerfile: Dockerfile
     container_name: michelinbot-api-prod
     environment:
-      DATABASE_URL: ${DATABASE_URL}
       ZHIPUAI_API_KEY: ${ZHIPUAI_API_KEY}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
-      HOST: 0.0.0.0
-      PORT: 8000
-    depends_on:
-      postgres:
-        condition: service_healthy
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost}
+      HOST: ${HOST:-0.0.0.0}
+      PORT: ${PORT:-8000}
+      DEBUG: ${DEBUG:-false}
+      LLM_MODEL: ${LLM_MODEL:-glm-5.1}
+      LLM_TEMPERATURE: ${LLM_TEMPERATURE:-0.7}
+      LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-2000}
+      API_BASE_URL: ${API_BASE_URL:-https://api.z.ai/api/coding/paas/v4}
+      API_TIMEOUT: ${API_TIMEOUT:-180}
+      RATE_LIMIT_REQUESTS_PER_MINUTE: ${RATE_LIMIT_REQUESTS_PER_MINUTE:-60}
+      SESSION_TIMEOUT: ${SESSION_TIMEOUT:-3600}
     volumes:
-      - ./michelin-bot/michelin_my_maps.csv:/app/michelin_my_maps.csv:ro
       - ./michelin-bot/data:/app/data
     networks:
       - michelin-network
@@ -50,8 +35,8 @@ services:
       dockerfile: Dockerfile
     container_name: michelinbot-frontend-prod
     environment:
-      NUXT_PUBLIC_API_BASE_URL: http://api:8000
-      PORT: 3000
+      NUXT_PUBLIC_API_BASE_URL: ${NUXT_PUBLIC_API_BASE_URL:-/}
+      PORT: ${FRONTEND_PORT:-3000}
     networks:
       - michelin-network
     restart: always
@@ -70,9 +55,6 @@ services:
     networks:
       - michelin-network
     restart: always
-
-volumes:
-  postgres_data:
 
 networks:
   michelin-network:

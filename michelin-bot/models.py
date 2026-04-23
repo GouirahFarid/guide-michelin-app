@@ -64,9 +64,7 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     """Response model for chat endpoint."""
     response: str = Field(..., description="AI-generated response")
-    sources: List[RestaurantSource] = Field(default_factory=list, description="Source restaurants")
     query_analysis: QueryAnalysis = Field(..., description="Analysis of the user's query")
-    geo_results: Optional[GeoResults] = Field(None, description="Geolocation search results if applicable")
     session_id: str = Field(..., description="Session ID for conversation continuity")
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
@@ -171,54 +169,6 @@ class GeoSearchRequest(BaseModel):
     max_results: int = Field(10, ge=1, le=50)
 
 
-class GeoResults(BaseModel):
-    """Results from geolocation search."""
-    center: UserLocation
-    radius_km: float
-    restaurants_found: int
-    restaurants: List[RestaurantResponse]
-
-
-class NearbyRestaurantsResponse(BaseModel):
-    """Response for nearby restaurants endpoint."""
-    location: UserLocation
-    radius_km: float
-    count: int
-    results: List[RestaurantResponse]
-
-
-# ============================================================================
-# INGESTION MODELS
-# ============================================================================
-
-class IngestRequest(BaseModel):
-    """Request to trigger data ingestion."""
-    file_path: Optional[str] = Field(None, description="Path to CSV file (default: michelin_my_maps.csv)")
-    chunk_size: int = Field(500, description="Character chunk size for embeddings", ge=100, le=2000)
-    chunk_overlap: int = Field(50, description="Character overlap between chunks", ge=0, le=500)
-    skip_existing: bool = Field(True, description="Skip restaurants already in database")
-
-
-class IngestResponse(BaseModel):
-    """Response from data ingestion."""
-    status: str
-    message: str
-    restaurants_processed: int
-    restaurants_added: int
-    restaurants_skipped: int
-    embeddings_created: int
-    errors: List[str] = Field(default_factory=list)
-    duration_seconds: float
-
-
-class IngestProgress(BaseModel):
-    """Progress update during ingestion."""
-    current: int
-    total: int
-    percentage: float
-    current_restaurant: Optional[str] = None
-
-
 # ============================================================================
 # HEALTH & STATUS MODELS
 # ============================================================================
@@ -227,8 +177,6 @@ class HealthResponse(BaseModel):
     """Health check response."""
     status: str = "healthy"
     version: str = "1.0.0"
-    database_connected: Optional[bool] = None  # None when not applicable
-    embedding_model_loaded: Optional[bool] = None  # None when not applicable
     llm_configured: bool
     uptime_seconds: float
 
@@ -259,26 +207,6 @@ class RestaurantSearchRequest(BaseModel):
         if v not in ['asc', 'desc']:
             raise ValueError("sort_order must be 'asc' or 'desc'")
         return v
-
-
-class RestaurantListResponse(BaseModel):
-    """Response for restaurant list endpoint."""
-    count: int
-    total: int
-    limit: int
-    offset: int
-    results: List[RestaurantResponse]
-
-
-# ============================================================================
-# COMPARISON MODELS
-# ============================================================================
-
-class RestaurantComparison(BaseModel):
-    """Comparison of multiple restaurants."""
-    restaurants: List[RestaurantResponse]
-    comparison_points: Dict[str, List[str]] = Field(..., description="Key comparison points")
-    recommendation: Optional[str] = None
 
 
 # ============================================================================

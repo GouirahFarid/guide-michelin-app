@@ -44,9 +44,9 @@ def main():
         logger.debug("Debug mode enabled")
 
     logger.info("=" * 60)
-    logger.info("[MichelinBot] - LLM-Only Restaurant Recommendation")
+    logger.info("[MichelinBot] - AI Restaurant Recommendation")
     logger.info("=" * 60)
-    logger.info("Mode: LLM Direct (No Database)")
+    logger.info("Mode: LangGraph Workflow with LLM")
     logger.info("=" * 60)
     logger.info("[Starting Server]")
     logger.info("=" * 60)
