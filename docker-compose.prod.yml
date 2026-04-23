@@ -4,11 +4,19 @@ services:
       context: ./michelin-bot
       dockerfile: Dockerfile
     container_name: michelinbot-api-prod
-    env_file:
-      - ./michelin-bot/.env.prod
     environment:
       ZHIPUAI_API_KEY: ${ZHIPUAI_API_KEY}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://localhost}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost}
+      HOST: ${HOST:-0.0.0.0}
+      PORT: ${PORT:-8000}
+      DEBUG: ${DEBUG:-false}
+      LLM_MODEL: ${LLM_MODEL:-glm-5.1}
+      LLM_TEMPERATURE: ${LLM_TEMPERATURE:-0.7}
+      LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-2000}
+      API_BASE_URL: ${API_BASE_URL:-https://api.z.ai/api/coding/paas/v4}
+      API_TIMEOUT: ${API_TIMEOUT:-180}
+      RATE_LIMIT_REQUESTS_PER_MINUTE: ${RATE_LIMIT_REQUESTS_PER_MINUTE:-60}
+      SESSION_TIMEOUT: ${SESSION_TIMEOUT:-3600}
     volumes:
       - ./michelin-bot/data:/app/data
     networks:
@@ -26,8 +34,9 @@ services:
       context: ./michelin-front
       dockerfile: Dockerfile
     container_name: michelinbot-frontend-prod
-    env_file:
-      - ./michelin-front/.env.prod
+    environment:
+      NUXT_PUBLIC_API_BASE_URL: ${NUXT_PUBLIC_API_BASE_URL:-/}
+      PORT: ${FRONTEND_PORT:-3000}
     networks:
       - michelin-network
     restart: always
