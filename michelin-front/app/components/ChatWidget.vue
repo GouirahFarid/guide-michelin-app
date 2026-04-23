@@ -10,7 +10,15 @@
       aria-label="Open chat"
       @click="toggleChat"
     >
-      <UIcon name="i-heroicons-chat-bubble-oval-ellipsis" class="w-6 h-6 text-white" />
+      <div class="relative">
+        <UIcon name="i-heroicons-chat-bubble-left-right" class="w-6 h-6 text-white" />
+        <span
+          v-if="unreadCount > 0 && !isOpen"
+          class="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 text-yellow-900 rounded-full text-xs font-bold flex items-center justify-center"
+        >
+          {{ unreadCount > 9 ? '9+' : unreadCount }}
+        </span>
+      </div>
     </button>
 
     <!-- Chat Overlay/Modal -->
@@ -48,23 +56,59 @@
           ]"
         >
           <!-- Header -->
-          <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 shrink-0">
+          <div class="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white shrink-0">
             <div class="flex items-center gap-2">
-              <div class="w-8 h-8 bg-black rounded-full flex items-center justify-center">
+              <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
                 <span class="text-white text-xs font-bold">M</span>
               </div>
               <div>
-                <p class="font-semibold text-sm text-gray-900">Michelin Guide</p>
-                <p class="text-xs text-gray-500">AI Assistant</p>
+                <p class="font-semibold text-sm">Michelin Guide</p>
+                <p class="text-xs text-white/80">AI Assistant</p>
               </div>
             </div>
-            <button
-              class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
-              @click="closeChat"
-            >
-              <UIcon name="i-heroicons-x-mark" class="w-5 h-5 text-gray-600" />
-            </button>
+            <div class="flex items-center gap-1">
+              <button
+                class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/20 transition-colors"
+                @click="showQuickAssist = !showQuickAssist"
+                title="Quick suggestions"
+              >
+                <UIcon name="i-heroicons-light-bulb" class="w-5 h-5" />
+              </button>
+              <button
+                class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/20 transition-colors"
+                @click="closeChat"
+              >
+                <UIcon name="i-heroicons-x-mark" class="w-5 h-5" />
+              </button>
+            </div>
           </div>
+
+          <!-- Quick Assist Bar -->
+          <Transition
+            enter-active-class="transition-all duration-200"
+            enter-from-class="opacity-0 -translate-y-2"
+            enter-to-class="opacity-100 translate-y-0"
+            leave-active-class="transition-all duration-150"
+            leave-from-class="opacity-100 translate-y-0"
+            leave-to-class="opacity-0 -translate-y-2"
+          >
+            <div
+              v-if="showQuickAssist"
+              class="px-4 py-3 bg-red-50 border-b border-red-100 shrink-0"
+            >
+              <p class="text-xs font-medium text-red-800 mb-2">Quick suggestions:</p>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  v-for="quick in quickAssistOptions"
+                  :key="quick.text"
+                  @click="form.query = quick.text; showQuickAssist = false; handleSubmit()"
+                  class="px-3 py-1.5 bg-white border border-red-200 hover:bg-red-100 rounded-full text-xs text-red-700 transition-colors"
+                >
+                  {{ quick.label }}
+                </button>
+              </div>
+            </div>
+          </Transition>
 
           <!-- Messages -->
           <div ref="messagesContainer" class="flex-1 overflow-y-auto">
@@ -228,6 +272,8 @@ const isOpen = ref(false)
 const messagesContainer = ref<HTMLElement>()
 const isLoading = ref(false)
 const sessionId = ref<string>()
+const showQuickAssist = ref(false)
+const unreadCount = ref(0)
 
 // Detect mobile
 const isMobile = ref(true)
@@ -269,6 +315,14 @@ const suggestions = [
   '3 stars near me',
   'Romantic dinner spots',
   'Bib Gourmand recommendations'
+]
+
+const quickAssistOptions = [
+  { label: '🌟 3 Stars', text: '3-star restaurants near me' },
+  { label: '💑 Romantic', text: 'Romantic dinner spots' },
+  { label: '😋 Bib Gourmand', text: 'Bib Gourmand recommendations' },
+  { label: '🍝 Italian', text: 'Best Italian restaurants' },
+  { label: '🍣 Sushi', text: 'Top-rated sushi places' },
 ]
 
 const { streamChat } = useChatStream()
@@ -357,12 +411,13 @@ async function handleSubmit() {
 .chat-toggle-btn {
   width: 56px;
   height: 56px;
-  background: #000;
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
 }
 
 .chat-toggle-btn:hover {
-  background: #222;
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
   transform: scale(1.05);
+  box-shadow: 0 10px 25px -5px rgba(220, 38, 38, 0.4);
 }
 
 /* Markdown prose styles */
