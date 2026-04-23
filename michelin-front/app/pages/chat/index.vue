@@ -211,48 +211,103 @@
     </div>
 
     <!-- Input Area -->
-    <div class="border-t border-gray-200 bg-white">
+    <div class="border-t border-gray-200 bg-white/80 backdrop-blur-sm">
       <div class="max-w-4xl mx-auto p-4">
-        <div class="relative flex items-center gap-2">
-          <UButton
-            icon="i-heroicons-microphone"
-            size="md"
-            variant="outline"
-            color="gray"
-            :disabled="isLoading"
-            class="shrink-0"
-          />
-          <UInput
-            v-model="form.query"
-            placeholder="Ask about Michelin-rated restaurants..."
-            size="lg"
-            :disabled="isLoading"
-            class="flex-1"
-            @keydown.enter.exact.prevent="handleSubmit"
-            :ui="{ wrapper: 'w-full', base: 'pr-12' }"
-          />
-          <UButton
-            icon="i-heroicons-paper-airplane"
-            :loading="isLoading"
-            :disabled="!form.query.trim()"
-            @click="handleSubmit"
-            color="red"
-            size="md"
-            class="shrink-0"
-            :class="form.query.trim() ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-gray-200 text-gray-400'"
-          />
-        </div>
-        <div class="flex items-center justify-between mt-2">
-          <p class="text-xs text-gray-500">
-            Powered by Michelin Guide data
-          </p>
-          <button
-            @click="showAssistMenu = true"
-            class="text-xs text-red-600 hover:text-red-700 flex items-center gap-1"
-          >
-            <UIcon name="i-heroicons-light-bulb" class="w-3 h-3" />
-            Need ideas?
-          </button>
+        <div class="relative">
+          <!-- Input Container with Shadow -->
+          <div class="flex items-end gap-2 p-2 bg-white rounded-2xl shadow-lg shadow-gray-200/50 border border-gray-100 focus-within:border-red-300 focus-within:ring-2 focus-within:ring-red-100 transition-all">
+            <!-- Clear Button -->
+            <Transition
+              enter-active-class="transition-all duration-150"
+              enter-from-class="opacity-0 scale-75"
+              enter-to-class="opacity-100 scale-100"
+              leave-active-class="transition-all duration-100"
+              leave-from-class="opacity-100 scale-100"
+              leave-to-class="opacity-0 scale-75"
+            >
+              <UButton
+                v-if="form.query.length > 0"
+                icon="i-heroicons-x-mark"
+                size="md"
+                variant="ghost"
+                color="gray"
+                :disabled="isLoading"
+                @click="form.query = ''"
+                class="shrink-0"
+              />
+            </Transition>
+
+            <!-- Text Area Input -->
+            <textarea
+              v-model="form.query"
+              :disabled="isLoading"
+              @keydown.enter.exact.prevent="handleSubmit"
+              @keydown.enter.shift.prevent="() => form.query += '\n'"
+              rows="1"
+              placeholder="Ask about Michelin-rated restaurants..."
+              class="flex-1 resize-none bg-transparent border-0 focus:ring-0 focus:outline-none text-gray-900 placeholder:text-gray-400 py-2.5 px-1 max-h-32 overflow-y-auto"
+              :class="{ 'text-gray-400': isLoading }"
+              @input="autoResize"
+              ref="textareaRef"
+            />
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-1 shrink-0">
+              <!-- Attachment Button -->
+              <UButton
+                icon="i-heroicons-paperclip"
+                size="md"
+                variant="ghost"
+                color="gray"
+                :disabled="isLoading"
+                class="shrink-0 opacity-60 hover:opacity-100"
+              />
+
+              <!-- Microphone Button -->
+              <UButton
+                icon="i-heroicons-microphone"
+                size="md"
+                variant="ghost"
+                color="gray"
+                :disabled="isLoading"
+                class="shrink-0 opacity-60 hover:opacity-100"
+              />
+
+              <!-- Send Button -->
+              <UButton
+                :icon="form.query.trim() ? 'i-heroicons-paper-airplane' : 'i-heroicons-arrow-up'"
+                :loading="isLoading"
+                :disabled="!form.query.trim()"
+                @click="handleSubmit"
+                size="md"
+                variant="raw"
+                class="shrink-0 transition-all w-10 h-10 flex items-center justify-center rounded-xl"
+                :class="form.query.trim() ? 'bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800 shadow-md shadow-red-200' : 'bg-gray-100 text-gray-400'"
+              />
+            </div>
+          </div>
+
+          <!-- Character Counter & Footer -->
+          <div class="flex items-center justify-between mt-2 px-2">
+            <div class="flex items-center gap-3">
+              <span class="text-xs text-gray-400">
+                <span :class="{ 'text-red-500': form.query.length > 500 }">
+                  {{ form.query.length }}
+                </span>
+                <span class="text-gray-300">/1000</span>
+              </span>
+              <button
+                @click="showAssistMenu = true"
+                class="text-xs text-red-600 hover:text-red-700 flex items-center gap-1 transition-colors"
+              >
+                <UIcon name="i-heroicons-light-bulb" class="w-3 h-3" />
+                Need ideas?
+              </button>
+            </div>
+            <p class="text-xs text-gray-400">
+              Press Enter to send • Shift + Enter for new line
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -276,6 +331,7 @@ const renderMarkdown = (content: string) => {
 }
 
 const messagesContainer = ref<HTMLElement>()
+const textareaRef = ref<HTMLTextAreaElement>()
 const isLoading = ref(false)
 const sessionId = ref<string>()
 const showAssistMenu = ref(false)
@@ -307,6 +363,19 @@ const suggestions = [
   { text: 'Bib Gourmand in London', desc: 'Great food at moderate prices' },
   { text: 'Best sushi in New York', desc: 'Top-rated Japanese cuisine' },
 ]
+
+// Auto-resize textarea
+function autoResize() {
+  const textarea = textareaRef.value
+  if (textarea) {
+    textarea.style.height = 'auto'
+    textarea.style.height = Math.min(textarea.scrollHeight, 128) + 'px'
+  }
+}
+
+watch(() => form.query, () => {
+  nextTick(() => autoResize())
+})
 
 const quickAssistOptions = [
   { text: '3-star restaurants near me', desc: 'Exceptional dining nearby', icon: 'i-heroicons-star', color: 'bg-red-100', iconColor: 'text-red-600' },
