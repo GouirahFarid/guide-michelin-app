@@ -12,7 +12,7 @@ import uuid
 from contextlib import asynccontextmanager
 from typing import Optional, Dict
 
-from fastapi import FastAPI, HTTPException, Query, Depends
+from fastapi import FastAPI, HTTPException, Query, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
@@ -286,10 +286,10 @@ async def health_check():
 # STREAMING CHAT ENDPOINT (ENHANCED WITH LANGGRAPH)
 # ============================================================================
 
-def get_client_identifier(request) -> str:
+def get_client_identifier(request: Request) -> str:
     """Get client identifier for rate limiting."""
     # Try to get from session first
-    session_id = request.state.get("session_id")
+    session_id = getattr(request.state, "session_id", None)
     if session_id:
         return f"session:{session_id}"
 
@@ -302,7 +302,7 @@ def get_client_identifier(request) -> str:
 
 @app.get("/chat/stream", tags=["Chat"])
 async def chat_stream(
-    request,
+    request: Request,
     query: str = Query(
         ...,
         description="User query about restaurants",

@@ -225,7 +225,10 @@ export function useChatStream() {
         }
       }
     } catch (error) {
-      onError?.(error instanceof Error ? error.message : String(error))
+      console.error('[useChatStream] Error:', error)
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      console.error('[useChatStream] Error message:', errorMessage)
+      onError?.(errorMessage)
     }
   }
 

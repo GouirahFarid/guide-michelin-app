@@ -13,20 +13,32 @@ export default defineNuxtConfig({
     '@nuxt/hints',
     '@nuxt/ui',
     '@nuxtjs/i18n',
-    '@pinia/nuxt',
-    'nuxt-mapbox'
+    '@pinia/nuxt'
   ],
 
   css: ['~/assets/css/main.css'],
 
-  // Route rules for API proxy
-  routeRules: {
-    '/api/**': {
-      proxy: { to: 'http://localhost:8000/**' }
+  // Vite proxy for development (works with Nuxt 4)
+  vite: {
+    server: {
+      proxy: {
+        '/api': {
+          target: 'http://localhost:8000',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api/, ''),
+          configure: (proxy, _options) => {
+            proxy.on('error', (err, _req, _res) => {
+              console.log('proxy error', err);
+            });
+            proxy.on('proxyReq', (proxyReq, req, _res) => {
+              console.log('Sending request to the target:', req.method, req.url);
+            });
+            proxy.on('proxyRes', (proxyReq, req, _res) => {
+              console.log('Received response from the target:', proxyReq.statusCode, req.url);
+            });
+          }
+        }
+      }
     }
-  },
-
-  mapbox: {
-    accessToken: 'pk.eyJ1IjoiZ291aXJhaCIsImEiOiJjbW84bHpkc3kwMnRtMnJzOThoN3N6b3BwIn0.0ICDsmDOtlIypgSFTyWYOw'
   }
 })
