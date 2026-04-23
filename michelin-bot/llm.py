@@ -17,11 +17,11 @@ from config import get_settings
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-# Custom API base URL
-ZAI_API_BASE = "https://api.z.ai/api/coding/paas/v4"
+# API base URL from settings
+ZAI_API_BASE = settings.api_base_url
 
 # Default timeout for API calls (seconds)
-DEFAULT_API_TIMEOUT = 120.0
+DEFAULT_API_TIMEOUT = settings.api_timeout
 
 
 # ============================================================================

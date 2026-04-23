@@ -150,7 +150,7 @@ class LangChainMichelinAgent:
             model=model,
             temperature=temperature,
             openai_api_key=settings.zhipuai_api_key,
-            openai_api_base="https://api.z.ai/api/coding/paas/v4",
+            openai_api_base=settings.api_base_url,
             streaming=streaming,
             max_tokens=2000,
             timeout=180.0,  # 3 minutes timeout for reasoning models

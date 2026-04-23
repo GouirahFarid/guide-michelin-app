@@ -17,6 +17,16 @@ class Settings(BaseSettings):
     # Server
     host: str = "0.0.0.0"
     port: int = 8000
+    debug: bool = False
+
+    # API Configuration
+    api_base_url: str = "https://api.z.ai/api/paas/v4"
+    api_timeout: int = 120
+
+    # LLM Configuration
+    llm_model: str = "glm-5.1"
+    llm_temperature: float = 0.7
+    llm_max_tokens: int = 2000
 
     # Embedding Model
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
@@ -25,6 +35,15 @@ class Settings(BaseSettings):
     chunk_size: int = 500
     chunk_overlap: int = 50
     top_k_retrieval: int = 5
+
+    # Rate Limiting
+    rate_limit_requests_per_minute: int = 60
+
+    # Session
+    session_timeout: int = 3600  # 1 hour
+
+    # RAG Mode
+    enable_rag: bool = False  # Set to True to enable database/vector search
 
     model_config = {
         "env_file": ".env",

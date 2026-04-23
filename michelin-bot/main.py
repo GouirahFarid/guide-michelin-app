@@ -6,6 +6,14 @@ Run this to start the FastAPI server.
 import os
 import uvicorn
 import sys
+import logging
+
+# Configure logging before imports
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Fix Windows console encoding
 if sys.platform == "win32":
@@ -26,26 +34,32 @@ def main():
     parser.add_argument("--host", default=settings.host, help="Host to bind to")
     parser.add_argument("--port", type=int, default=settings.port, help="Port to bind to")
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload")
+    parser.add_argument("--debug", action="store_true", help="Enable debug mode")
 
     args = parser.parse_args()
 
-    print("=" * 60)
-    print("[MichelinBot] - LLM-Only Restaurant Recommendation")
-    print("=" * 60)
-    print("Mode: LLM Direct (No Database)")
-    print("=" * 60)
-    print("\n[Starting Server]")
-    print("=" * 60)
-    print(f"   Host: {args.host}")
-    print(f"   Port: {args.port}")
-    print(f"   Docs: http://{args.host}:{args.port}/docs")
-    print(f"   Health: http://{args.host}:{args.port}/health")
-    print("=" * 60)
-    print("\n[MichelinBot] Ready! Ask about restaurants:")
-    print("   - 'Best 3-star restaurants'")
-    print("   - 'Romantic dinner recommendations'")
-    print("   - 'Japanese fine dining'")
-    print("\n")
+    # Enable debug logging if requested
+    if args.debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+        logger.debug("Debug mode enabled")
+
+    logger.info("=" * 60)
+    logger.info("[MichelinBot] - LLM-Only Restaurant Recommendation")
+    logger.info("=" * 60)
+    logger.info("Mode: LLM Direct (No Database)")
+    logger.info("=" * 60)
+    logger.info("[Starting Server]")
+    logger.info("=" * 60)
+    logger.info(f"   Host: {args.host}")
+    logger.info(f"   Port: {args.port}")
+    logger.info(f"   Docs: http://{args.host}:{args.port}/docs")
+    logger.info(f"   Health: http://{args.host}:{args.port}/health")
+    logger.info("=" * 60)
+    logger.info("[MichelinBot] Ready! Ask about restaurants:")
+    logger.info("   - 'Best 3-star restaurants'")
+    logger.info("   - 'Romantic dinner recommendations'")
+    logger.info("   - 'Japanese fine dining'")
+    logger.info("=" * 60)
 
     # Start server
     uvicorn.run(
@@ -53,6 +67,7 @@ def main():
         host=args.host,
         port=args.port,
         reload=args.reload,
+        log_level="debug" if args.debug else "info",
     )
 
 

@@ -104,7 +104,7 @@ The agent has knowledge of MICHELIN-guide restaurants in:
 
 ### API Endpoint
 
-- **Base URL**: `https://api.z.ai/api/coding/paas/v4`
+- **Base URL**: `https://api.z.ai/api/paas/v4`
 - **Compatible**: OpenAI API format
 
 ## Development

@@ -227,8 +227,8 @@ class HealthResponse(BaseModel):
     """Health check response."""
     status: str = "healthy"
     version: str = "1.0.0"
-    database_connected: bool
-    embedding_model_loaded: bool
+    database_connected: Optional[bool] = None  # None when not applicable
+    embedding_model_loaded: Optional[bool] = None  # None when not applicable
     llm_configured: bool
     uptime_seconds: float
 
@@ -358,3 +358,95 @@ CURRENCY_SYMBOLS = {
     'GBP': '£',
     'UNKNOWN': ''
 }
+
+
+# ============================================================================
+# STREAMING EVENT MODELS FOR NUXT UI
+# ============================================================================
+
+class RestaurantCard(BaseModel):
+    """Restaurant card data for Nuxt UI UCard rendering.
+
+    Designed to be compatible with Nuxt UI UCard component.
+    Includes computed fields for title, subtitle, and badge styling.
+    """
+    # Core restaurant data
+    id: int
+    name: str
+    award: Optional[str] = None
+    cuisine: Optional[str] = None
+    price: Optional[str] = None
+    location: str
+    distance_km: Optional[float] = None
+
+    # Description
+    description: Optional[str] = None
+    signature_dish: Optional[str] = None
+    facilities: Optional[str] = None
+
+    # UI rendering helpers - computed from core data
+    title: Optional[str] = Field(None, description="Computed title for UCard")
+    subtitle: Optional[str] = Field(None, description="Computed subtitle for UCard")
+    badge_text: Optional[str] = Field(None, description="Badge text (e.g., '3 Stars')")
+    badge_color: Optional[str] = Field(None, description="Badge color for UBadge")
+
+    # Links
+    url: Optional[str] = None
+    website_url: Optional[str] = None
+
+    @field_validator('title', mode='before')
+    @classmethod
+    def compute_title(cls, v: Optional[str], info) -> str:
+        """Compute title from name and award if not explicitly set."""
+        if v is not None:
+            return v
+        name = info.data.get('name', '')
+        award = info.data.get('award', '')
+        return f"{name} ({award})" if award else name
+
+    @field_validator('subtitle', mode='before')
+    @classmethod
+    def compute_subtitle(cls, v: Optional[str], info) -> Optional[str]:
+        """Compute subtitle from cuisine and location if not explicitly set."""
+        if v is not None:
+            return v
+        cuisine = info.data.get('cuisine')
+        location = info.data.get('location', '')
+        parts = [p for p in [cuisine, location] if p]
+        return " | ".join(parts) if parts else None
+
+    @field_validator('badge_text', mode='before')
+    @classmethod
+    def compute_badge_text(cls, v: Optional[str], info) -> Optional[str]:
+        """Compute badge text from award if not explicitly set."""
+        if v is not None:
+            return v
+        return info.data.get('award')
+
+    @field_validator('badge_color', mode='before')
+    @classmethod
+    def compute_badge_color(cls, v: Optional[str], info) -> Optional[str]:
+        """Compute Nuxt UI badge color from award level."""
+        if v is not None:
+            return v
+        award = info.data.get('award', '')
+        if '3 Stars' in award or '3 star' in award:
+            return 'yellow'
+        elif '2 Stars' in award or '2 star' in award:
+            return 'orange'
+        elif '1 Star' in award or '1 star' in award:
+            return 'amber'
+        elif 'Bib Gourmand' in award:
+            return 'red'
+        elif 'Green Star' in award or 'green' in award.lower():
+            return 'green'
+        return 'primary'
+
+
+class StreamingProgress(BaseModel):
+    """Progress update for streaming workflow."""
+    step: str = Field(..., description="Current step name")
+    progress: float = Field(..., ge=0.0, le=1.0, description="Progress 0-1")
+    message: str = Field(..., description="Human-readable progress message")
+    details: Optional[Dict[str, Any]] = None
+
