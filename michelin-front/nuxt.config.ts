@@ -13,8 +13,7 @@ export default defineNuxtConfig({
     '@nuxt/hints',
     '@nuxt/ui',
     '@nuxtjs/i18n',
-    '@pinia/nuxt',
-    'nuxt-mapbox'
+    '@pinia/nuxt'
   ],
 
   css: ['~/assets/css/main.css'],
@@ -41,9 +40,5 @@ export default defineNuxtConfig({
         }
       }
     }
-  },
-
-  mapbox: {
-    accessToken: 'pk.eyJ1IjoiZ291aXJhaCIsImEiOiJjbW84bHpkc3kwMnRtMnJzOThoN3N6b3BwIn0.0ICDsmDOtlIypgSFTyWYOw'
   }
 })
