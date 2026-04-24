@@ -13,7 +13,7 @@ export default defineNuxtConfig({
     '@nuxt/hints',
     '@nuxt/ui',
     '@nuxtjs/i18n',
-    '@pinia/nuxt'
+    '@pinia/nuxt',
   ],
 
   css: ['~/assets/css/main.css'],

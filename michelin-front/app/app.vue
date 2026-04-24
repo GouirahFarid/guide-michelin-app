@@ -1,4 +1,6 @@
 <template>
-  <NuxtPage />
-  <ChatWidget />
+  <NuxtLayout>
+    <NuxtPage />
+    <ChatWidget />
+  </NuxtLayout>
 </template>
