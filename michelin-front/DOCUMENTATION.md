@@ -1,25 +1,19 @@
-# Documentation Technique & Fonctionnelle — Guide Michelin AI Frontend
+# Michelin Guide — Documentation Complète du Projet
 
-> Hackaton Skolae 2026 · ICAN / ESGI / ECITV / EFET CREA
+> **Hackathon Skolae 2026** · ICAN · ESGI · ECITV · EFET CREA
 
 ---
 
 ## Table des matières
 
 1. [Contexte & Problématique](#1-contexte--problématique)
-2. [Solution apportée par le projet](#2-solution-apportée-par-le-projet)
-3. [Vue d'ensemble du projet](#3-vue-densemble-du-projet)
-4. [Architecture technique](#4-architecture-technique)
-5. [Structure des fichiers](#5-structure-des-fichiers)
-6. [Organisation des composants](#6-organisation-des-composants)
-7. [Pages & Routing](#7-pages--routing)
-8. [Gestion d'état](#8-gestion-détat)
-9. [Flux de données & Communication avec le backend](#9-flux-de-données--communication-avec-le-backend)
-10. [Système de design & Charte graphique](#10-système-de-design--charte-graphique)
-11. [TypeScript — Interfaces & Types](#11-typescript--interfaces--types)
-12. [Dépendances](#12-dépendances)
-13. [Déploiement & Configuration](#13-déploiement--configuration)
-14. [État d'avancement & Pistes d'évolution](#14-état-davancement--pistes-dévolution)
+2. [Installation & Lancement](#2-installation--lancement)
+3. [Stack technique](#3-stack-technique)
+4. [Architecture des fichiers](#4-architecture-des-fichiers)
+5. [Architecture des composants](#5-architecture-des-composants)
+6. [Gestion d'état — Stores Pinia](#6-gestion-détat--stores-pinia)
+7. [Routing & Pages](#7-routing--pages)
+8. [Design System](#8-design-system)
 
 ---
 
@@ -27,602 +21,300 @@
 
 ### Le Guide Michelin en 2026
 
-Fondé en 1900 par André et Édouard Michelin, le Guide Michelin est historiquement la référence mondiale de la gastronomie.
+Fondé en 1900 par André et Édouard Michelin, le Guide Michelin s'est imposé pendant plus d'un siècle comme **la référence mondiale de la prescription gastronomique**.
 
-### La Problématique
+### La problématique centrale
 
-> **"Comment le Guide Michelin peut-il regagner du terrain face aux réseaux sociaux, aux plateformes et aux influenceurs, pour conquérir un marché plus jeune et redevenir le guide prescripteur de référence ?"**
+> **Comment le Guide Michelin peut-il regagner du terrain face aux réseaux sociaux, aux plateformes, et aux influenceurs, pour conquérir un marché plus jeune et redevenir le guide prescripteur de référence ?**
 
-L'émergence d'acteurs numériques (TripAdvisor, The Fork, Le Fooding, influenceurs food, réseaux sociaux) a fragmenté la prescription gastronomique et éloigné le public jeune du guide rouge.
-
----
-
-## 2. Solution apportée par le projet
-
-### Positionnement
-
-`michelin-front` est une **interface conversationnelle mobile-first** qui repositionne le Guide Michelin comme un outil de recommandation quotidien, accessible, personnalisé et moderne — répondant directement à la problématique du hackaton.
-
-### Réponse aux enjeux identifiés
-
-| Problème                                        | Solution implémentée                                          |
-| ----------------------------------------------- | ------------------------------------------------------------- |
-| Guide perçu comme élitiste et difficile d'accès | Interface conversationnelle intuitive en langage naturel      |
-| Perte de pertinence face aux influenceurs       | Assistant IA qui dialogue comme un expert de confiance        |
-| Public jeune peu engagé                         | UX mobile-first avec navigation                               |
-| Manque de dynamisme face aux réseaux sociaux    | Streaming temps réel des réponses (SSE) pour un effet vivant  |
-| Complexité de la sélection Michelin             | Cards restaurants enrichies avec badge, award, prix, distance |
-
-### Concept central : l'assistant gastronomique IA
-
-L'utilisateur peut poser des questions en langage naturel ("un restaurant étoilé à moins de 5km avec de la cuisine japonaise") et recevoir en temps réel :
-
-- Une **analyse de sa requête** (lieu détecté, cuisine, distinction)
-- Des **fiches restaurant** structurées et enrichies
-- Un **texte de réponse streamé** avec contexte gastronomique
-- Une **continuité de session** pour un dialogue naturel
-
-Cette approche transforme le Guide Michelin d'un annuaire consulté passivement en un **compagnon gastronomique interactif**.
+Le Guide reste incontournable pour les professionnels de la restauration, mais souffre d'une image trop élitiste, trop institutionnelle et trop peu interactive auprès des Guides Y et Z.
 
 ---
 
-## 3. Vue d'ensemble du projet
+## 2. Installation & Lancement
 
-| Attribut            | Valeur                                     |
-| ------------------- | ------------------------------------------ |
-| **Nom**             | michelin-front                             |
-| **Type**            | Application web mobile-first (SPA/SSR)     |
-| **Framework**       | Nuxt 4.4.2 + Vue 3                         |
-| **Langage**         | TypeScript                                 |
-| **Build tool**      | Vite (intégré Nuxt)                        |
-| **Package manager** | npm                                        |
-| **Backend attendu** | API REST + SSE sur `http://localhost:8000` |
-| **Port dev**        | 3000                                       |
-| **Déploiement**     | Docker                                     |
+### Prérequis
+
+| Outil | Version minimale | Vérification |
+|---|---|---|
+| **Node.js** | 18.x LTS | `node -v` |
+| **npm** | 9.x | `npm -v` |
+
+> Nuxt 3 requiert Node.js ≥ 18. Il est recommandé d'utiliser [nvm](https://github.com/nvm-sh/nvm) pour gérer les versions Node.
 
 ---
 
-## 4. Architecture technique
+### 1. Cloner le dépôt
+
+```bash
+git clone <url-du-repo>
+cd michelin-gen
+```
+
+---
+
+### 2. Installer les dépendances
+
+```bash
+npm install
+```
+
+Cette commande installe l'ensemble des dépendances déclarées dans `package.json` :
+- `nuxt` — framework principal
+- `pinia` + `@pinia/nuxt` — gestion d'état
+- `@nuxtjs/tailwindcss` — styles utilitaires
+- `vite` — bundler (géré automatiquement par Nuxt)
+
+Le script `postinstall` défini dans `package.json` exécute automatiquement `nuxt prepare`, qui génère les types TypeScript et initialise le dossier `.nuxt/`.
+
+---
+
+### 3. Lancer le serveur de développement
+
+```bash
+npm run dev
+```
+
+Nuxt démarre un serveur de développement Vite avec **Hot Module Replacement (HMR)** : toute modification de fichier est reflétée instantanément dans le navigateur sans rechargement complet.
+
+L'application est accessible à l'adresse : **`http://localhost:3000`**
+
+---
+
+### 4. Build de production
+
+```bash
+npm run build
+```
+
+Nuxt compile l'application en mode SSR (Server-Side Rendering) dans le dossier `.output/`. Vite optimise et minifie les assets (JS, CSS).
+
+```bash
+npm run preview   # Prévisualiser le build de production en local
+```
+
+---
+
+### 5. Génération statique (optionnel)
+
+```bash
+npm run generate
+```
+
+Génère un site 100% statique dans `.output/public/` — déployable sur tout CDN (Vercel, Netlify, GitHub Pages). Adapté si aucun rendu serveur n'est nécessaire.
+
+---
+
+### Scripts disponibles
+
+| Commande | Description |
+|---|---|
+| `npm run dev` | Serveur de développement avec HMR sur `localhost:3000` |
+| `npm run build` | Build de production SSR dans `.output/` |
+| `npm run preview` | Prévisualisation du build de production |
+| `npm run generate` | Génération statique dans `.output/public/` |
+
+---
+
+## 3. Stack technique
+
+```
+Framework      : Nuxt 3 (^3.13.0)
+UI             : Vue 3 (Composition API, <script setup>)
+Bundler        : Vite (^5.4.0)
+Styling        : Tailwind CSS (@nuxtjs/tailwindcss ^6.12.0)
+State          : Pinia (^2.2.0) + @pinia/nuxt (^0.5.4)
+Fonts          : Google Fonts — Figtree · Inter · JetBrains Mono
+Routing        : Nuxt file-based routing (auto)
+Données        : Mock data (in-store, hardcodé) — pas de backend
+```
+
+### Pourquoi Nuxt 3 ?
+
+- **SSR/SSG-ready** : optimal pour le SEO d'une plateforme de contenu gastronomique
+- **Auto-routing** : les fichiers dans `/pages` deviennent automatiquement des routes
+- **Modules officiels** : intégration native de Tailwind CSS et Pinia
+- **Composition API** : code Vue 3 moderne, réutilisable, testable
+
+---
+
+## 3. Architecture des fichiers
+
+```
+michelin-gen/
+│
+├── assets/
+│   └── css/
+│       └── main.css              # Design tokens CSS, animations globales, typography
+│
+├── components/                   # Composants réutilisables (UI bricks)
+│   ├── FilterSelect.vue          # Dropdown de filtre
+│   ├── PodcastPlayer.vue         # Player audio persistant (bottom bar)
+│   ├── RestaurantCard.vue        # Carte restaurant (grille)
+│   ├── SiteFooter.vue            # Pied de page global
+│   └── SiteHeader.vue            # En-tête de navigation global
+│
+├── layouts/
+│   └── default.vue               # Layout racine : Header + slot + Footer + PodcastPlayer
+│
+├── pages/                        # Routes auto-générées par Nuxt
+│   ├── index.vue                 # / — Page d'accueil (hero, mood, editorial)
+│   ├── community.vue             # /community — Fil social
+│   ├── podcasts.vue              # /podcasts — Catalogue podcasts
+│   ├── profile.vue               # /profile — Profil utilisateur
+│   └── restaurants/
+│       ├── index.vue             # /restaurants — Listing + filtres
+│       └── [id].vue              # /restaurants/:id — Fiche restaurant
+│
+├── stores/                       # État global (Pinia)
+│   ├── restaurants.js            # Données + filtres restaurants
+│   ├── user.js                   # Profil utilisateur + wishlist + badges
+│   ├── collections.js            # Collections curatées
+│   ├── events.js                 # Événements communautaires
+│   └── podcasts.js               # Episodes + état du player
+│
+├── public/                       # Assets statiques (images, favicons…)
+│
+├── nuxt.config.ts                # Config Nuxt (modules, CSS, meta)
+├── tailwind.config.js            # Design tokens Tailwind (couleurs, fonts, animations)
+└── package.json
+```
+
+---
+
+## 4. Architecture des composants
 
 ### Vue d'ensemble
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    NAVIGATEUR / MOBILE                   │
-│                                                         │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │                  Nuxt 4 (Vue 3)                  │   │
-│  │                                                  │   │
-│  │  ┌────────────┐  ┌────────────┐  ┌────────────┐  │   │
-│  │  │  app.vue   │  │ default.vue│  │  Pages     │  │   │
-│  │  │  (root)    │  │ (layout)   │  │  (routes)  │  │   │
-│  │  └────────────┘  └────────────┘  └────────────┘  │   │
-│  │                                                  │   │
-│  │  ┌────────────────────────────────────────────┐  │   │
-│  │  │             Composables (logique)           │  │   │
-│  │  │         useChatStream.ts (SSE client)       │  │   │
-│  │  └────────────────────────────────────────────┘  │   │
-│  │                                                  │   │
-│  │  ┌────────────────────────────────────────────┐  │   │
-│  │  │           Composants réutilisables          │  │   │
-│  │  │  BadgeCard │ ChatWidget │ CreatorCard │ ... │  │   │
-│  │  └────────────────────────────────────────────┘  │   │
-│  └──────────────────────────────────────────────────┘   │
-│                          │ fetch SSE                     │
-│  ┌───────────────────────▼──────────────────────────┐   │
-│  │         Proxy Vite → http://localhost:8000        │   │
-│  │         /api/chat/stream?query=...                │   │
-│  └──────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────┘
-                          │
-            ┌─────────────▼──────────────┐
-            │      Backend Python        │
-            │   (FastAPI / autre)        │
-            │  SSE streaming endpoint    │
-            └────────────────────────────┘
+layouts/default.vue
+├── components/SiteHeader.vue
+├── <slot> (page active)
+│   ├── components/RestaurantCard.vue  (utilisé dans index.vue et restaurants/index.vue)
+│   └── components/FilterSelect.vue   (utilisé dans restaurants/index.vue)
+└── components/SiteFooter.vue
+    + components/PodcastPlayer.vue     (conditionnel, monté si nowPlaying)
 ```
 
-### Pattern architectural
-
-Le projet suit une architecture **Feature-per-Page** avec des composables partagés :
-
-- **Pages** : chaque route est une unité autonome
-- **Composables** : logique métier réutilisable extraite des composants
-- **Composants** : UI découplée de la logique, props-driven
-- **Layout** : navigation commune injectée via `default.vue`
+### Détail de chaque composant
 
 ---
 
-## 5. Structure des fichiers
+#### `SiteHeader.vue`
 
-```
-michelin-front/
-├── app/                            # Code source principal
-│   ├── app.vue                     # Racine de l'application (NuxtPage + ChatWidget global)
-│   ├── assets/
-│   │   └── css/
-│   │       └── main.css            # Tailwind CSS + Nuxt UI + variables CSS marque
-│   │
-│   ├── components/                 # Composants réutilisables
-│   │   ├── BadgeCard.vue           # Affichage des badges/récompenses
-│   │   ├── ChatWidget.vue          # Widget chat flottant (disponible sur toutes les pages)
-│   │   ├── CreatorCard.vue         # Carte profil créateur de contenu
-│   │   ├── MenuItem.vue            # Élément de menu dans les paramètres profil
-│   │   ├── NavBar.vue              # Barre de navigation (legacy, non utilisée)
-│   │   ├── StatCard.vue            # Carte statistiques profil utilisateur
-│   │   └── TasteTag.vue            # Tag de préférence gustative
-│   │
-│   ├── composables/
-│   │   └── useChatStream.ts        # Client SSE — cœur de la logique IA
-│   │
-│   ├── layouts/
-│   │   └── default.vue             # Layout avec bottom navigation fixe
-│   │
-│   └── pages/                      # Routing file-based (auto-routing Nuxt)
-│       ├── index.vue               # / — Landing page
-│       ├── chat/
-│       │   └── index.vue           # /chat — Interface chat plein écran
-│       ├── assistant/
-│       │   └── index.vue           # /assistant — Assistant IA (page dédiée)
-│       ├── explore/
-│       │   └── index.vue           # /explore — Exploration restaurants
-│       ├── creators/
-│       │   └── index.vue           # /creators — Profils créateurs
-│       └── profile/
-│           └── index.vue           # /profile — Profil utilisateur
-│
-├── public/                         # Assets statiques servis directement
-├── nuxt.config.ts                  # Configuration Nuxt (proxy, modules, runtime)
-├── tsconfig.json                   # Configuration TypeScript
-├── eslint.config.mjs               # Linting
-├── Dockerfile                      # Image Docker production
-├── .env.example                    # Template variables d'environnement
-├── package.json                    # Dépendances & scripts
-├── LOGO_GUIDE.md                   # Guide des assets marque
-└── README.md                       # Documentation rapide
-```
+**Rôle** : Navigation principale persistante (sticky).
 
 ---
 
-## 6. Organisation des composants
+#### `SiteFooter.vue`
 
-### Arbre de composants
-
-```
-app.vue (racine)
-├── <NuxtLayout> (default.vue)
-│   ├── <slot /> → <NuxtPage> (page active)
-│   │   ├── pages/index.vue
-│   │   ├── pages/chat/index.vue
-│   │   │   └── useChatStream() [composable]
-│   │   ├── pages/assistant/index.vue
-│   │   ├── pages/explore/index.vue
-│   │   ├── pages/creators/index.vue
-│   │   │   └── <CreatorCard /> (×N)
-│   │   └── pages/profile/index.vue
-│   │       ├── <StatCard /> (×3)
-│   │       ├── <BadgeCard /> (×N)
-│   │       ├── <TasteTag /> (×N)
-│   │       └── <MenuItem /> (×N)
-│   └── [Bottom Navigation Bar]
-│       └── <NuxtLink> (×5 routes)
-│
-└── <ChatWidget /> (global, Teleport → <body>)
-    ├── Bouton flottant (toggle)
-    └── Panel chat
-        ├── Header
-        ├── Liste messages (scroll)
-        │   ├── Message utilisateur
-        │   └── Message assistant
-        │       ├── Texte streamé (markdown)
-        │       ├── Query analysis chips
-        │       ├── Progress bar
-        │       └── RestaurantCard (×N)
-        └── Input + bouton envoi
-```
-
-### Catalogue des composants
-
-#### `ChatWidget.vue`
-
-**Type** : Feature component (logique + UI)
-**Rôle** : Widget de chat flottant disponible sur toutes les pages. Gère l'état de visibilité, l'historique des messages, le streaming SSE et le rendu des cards restaurants.
-**Props** : `buttonClass?`, `icon?`
-**État interne** : `isOpen`, `messages[]`, `sessionId`, `isLoading`, `form`
-**Dépendance** : `useChatStream` composable
-
-#### `CreatorCard.vue`
-
-**Type** : Presentational component
-**Rôle** : Affiche la carte d'un créateur de contenu (influenceur food, chef, chroniqueur) avec avatar, stats, spécialités.
-
-#### `BadgeCard.vue`
-
-**Type** : Presentational component
-**Rôle** : Affiche un badge/récompense utilisateur (gamification du profil).
-**Props** : `icon`, `title`, `subtitle`, `active`
-
-#### `StatCard.vue`
-
-**Type** : Presentational component
-**Rôle** : Carte statistique sur la page profil (restaurants visités, étoiles vues, etc.)
-
-#### `TasteTag.vue`
-
-**Type** : Presentational component
-**Rôle** : Tag de préférence culinaire (japonais, végétarien, bistrots, etc.)
-
-#### `MenuItem.vue`
-
-**Type** : Presentational component
-**Rôle** : Ligne de menu avec icône pour les paramètres du profil.
+**Rôle** : Pied de page éditorial.
 
 ---
 
-## 7. Pages & Routing
+#### `RestaurantCard.vue`
 
-### Configuration
-
-Nuxt 4 utilise le **file-based routing** : la structure du dossier `pages/` génère automatiquement les routes Vue Router.
-
-```typescript
-// nuxt.config.ts
-pages: true;
-```
-
-### Table des routes
-
-| Route        | Fichier                     | Rôle                                                                 | Statut       |
-| ------------ | --------------------------- | -------------------------------------------------------------------- | ------------ |
-| `/`          | `pages/index.vue`           | Landing page — présentation de l'assistant IA et des fonctionnalités | Fonctionnel  |
-| `/chat`      | `pages/chat/index.vue`      | Interface chat plein écran avec streaming SSE                        | Fonctionnel  |
-| `/assistant` | `pages/assistant/index.vue` | Page assistant IA dédiée                                             | UI partielle |
-| `/explore`   | `pages/explore/index.vue`   | Navigation dans la sélection restaurants                             | Squelette UI |
-| `/creators`  | `pages/creators/index.vue`  | Profils des créateurs de contenu                                     | Squelette UI |
-| `/profile`   | `pages/profile/index.vue`   | Profil utilisateur avec statistiques et badges                       | UI statique  |
-
-### Navigation
-
-La navigation principale est assurée par une **bottom navigation bar fixe** dans `layouts/default.vue` :
-
-```
-[Accueil]  [Explorer]  [Assistant]  [Créateurs]  [Profil]
-```
-
-Cette approche mobile-first reproduit les codes UX des apps comme Instagram ou TikTok, directement ciblés dans la problématique du hackaton.
+**Rôle** : Carte visuelle d'un restaurant pour les vues en grille.
 
 ---
 
-## 8. Gestion d'état
+#### `FilterSelect.vue`
 
-### Stratégie adoptée : état local + composables
+**Rôle** : Composant de select stylisé pour les filtres de la page restaurants.
 
-Le projet n'utilise **pas de store centralisé** (Pinia est installé mais aucun store n'est défini). La gestion d'état repose sur :
+---
 
-1. **`ref()` / `reactive()`** Vue 3 dans chaque composant
-2. **Composables** pour la logique partagée
+#### `PodcastPlayer.vue`
 
-> Pinia (`@pinia/nuxt@^0.11.3`) est disponible et prêt à être utilisé si l'état doit être partagé entre plusieurs pages.
+**Rôle** : Lecteur audio persistant en bas de page (style Spotify).
 
-### Cartographie de l'état par composant
+---
 
-| Composant/Composable   | Variable      | Type                       | Rôle                              |
-| ---------------------- | ------------- | -------------------------- | --------------------------------- |
-| `ChatWidget.vue`       | `isOpen`      | `Ref<boolean>`             | Visibilité du widget              |
-| `ChatWidget.vue`       | `messages`    | `Ref<Message[]>`           | Historique de la conversation     |
-| `ChatWidget.vue`       | `sessionId`   | `Ref<string \| undefined>` | Continuité de session API         |
-| `ChatWidget.vue`       | `isLoading`   | `Ref<boolean>`             | État de chargement                |
-| `ChatWidget.vue`       | `form`        | `reactive({query})`        | Valeur de l'input utilisateur     |
-| `pages/chat/index.vue` | `messages`    | `Ref<Message[]>`           | Même état, page dédiée            |
-| `pages/chat/index.vue` | `sessionId`   | `Ref<string>`              | Session persistante sur la page   |
-| `useChatStream.ts`     | _(stateless)_ | —                          | Composable pur, pas d'état propre |
+## 5. Gestion d'état — Stores Pinia
 
-### Type `Message`
+Tous les stores suivent le pattern **Options Store** de Pinia (`state` / `getters` / `actions`), sans persistance (état réinitialisé au rechargement).
 
-```typescript
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-  loading?: boolean;
-  progress?: { value: number; message: string };
-  queryAnalysis?: QueryAnalysisData;
-  restaurantCards?: RestaurantCardData[];
-  location?: { lat: number; lng: number; location: string };
+---
+
+## 6. Routing & Pages
+
+Nuxt 3 génère les routes automatiquement depuis le dossier `/pages`.
+
+| Route              | Fichier                 | Composants utilisés              | Stores utilisés                                                                    |
+| ------------------ | ----------------------- | -------------------------------- | ---------------------------------------------------------------------------------- |
+| `/`                | `index.vue`             | `RestaurantCard`                 | `useRestaurantsStore`, `useCollectionsStore`, `useEventsStore`, `usePodcastsStore` |
+| `/restaurants`     | `restaurants/index.vue` | `RestaurantCard`, `FilterSelect` | `useRestaurantsStore`, `useUserStore`                                              |
+| `/restaurants/:id` | `restaurants/[id].vue`  | —                                | `useRestaurantsStore`, `useUserStore`, `useCollectionsStore`, `useEventsStore`     |
+| `/community`       | `community.vue`         | —                                | `useUserStore`, `useCollectionsStore`, `useEventsStore`                            |
+| `/podcasts`        | `podcasts.vue`          | —                                | `usePodcastsStore`                                                                 |
+| `/profile`         | `profile.vue`           | —                                | `useUserStore`, `useRestaurantsStore`, `useCollectionsStore`                       |
+
+### Page d'accueil `index.vue`
+
+Structure en sections verticales :
+
+1. **Hero** : visuel plein écran, headline "Guide", CTA vers `/restaurants`
+2. **Mood picker** : icônes d'occasions (Date, Solo luxe, En famille…) → filtrage rapide
+3. **Restaurants en vedette** : grille `RestaurantCard` (6 premiers restaurants)
+4. **Citation éditoriale** : bloc typographique style magazine
+5. **Événements à venir** : 2 prochains events
+6. **Podcasts** : épisode du moment
+
+### Page listing `/restaurants`
+
+- **Barre de recherche** plein largeur
+- **5 filtres** via `FilterSelect` : Ville, Cuisine, Budget, Distinction, Occasion
+- **Toggle vue** : grille (cards) ↔ liste (éditorial)
+- **Résultats réactifs** : `restaurantsStore.filtered` (computed en temps réel)
+- **Compteur** : "X restaurants trouvés"
+
+### Page détail `/restaurants/[id]`
+
+Sections :
+
+1. Hero image + overlay informations (étoiles, chef, ville, budget)
+2. Description + critique éditoriale
+3. Plat signature
+4. Tags & occasions
+5. Actions utilisateur : Tester, Sauvegarder, Ajouter à une collection
+6. Commentaires communautaires (mockés)
+7. Événements liés à ce restaurant
+8. Restaurants similaires
+
+### Page profil `/profile`
+
+Onglets :
+
+- **Mes goûts** : cuisines favorites, budget, occasions, villes visitées, badges
+- **Testés** : restaurants marqués comme testés
+- **Sauvegardés** : wishlist
+- **Collections** : collections créées par l'utilisateur
+- **Activité** : historique des actions
+
+Modal "Modifier le profil" avec `useUserStore.updateField`.
+
+---
+
+## 7. Design System
+
+### Palette de couleurs (Tailwind config)
+
+```js
+colors: {
+  'michelin-red':   '#C8102E',   // Rouge iconique Michelin
+  'michelin-cream': '#FFF8F0',   // Fond chaud
+  'michelin-ink':   '#1A1A1A',   // Texte principal
+  'michelin-gold':  '#C9A84C',   // Accents premium (étoiles)
+  'michelin-grey':  '#6B6B6B',   // Texte secondaire
 }
 ```
 
-### Schéma du flux d'état
+### Typographie
 
-```
-[User input]
-     │
-     ▼
-form.query (reactive)
-     │
-     ▼ submitMessage()
-messages.push({ role: 'user', content })
-messages.push({ role: 'assistant', loading: true })
-     │
-     ▼ useChatStream()
-  SSE stream ouvert
-     │
-     ├── onToken      → messages[last].content += token
-     ├── onProgress   → messages[last].progress = { value, message }
-     ├── onQueryAnalysis → messages[last].queryAnalysis = data
-     ├── onRestaurantCard → messages[last].restaurantCards.push(card)
-     └── onDone       → sessionId = data.session_id
-                        isLoading = false
-```
+| Famille     | Usage                       |
+| ----------- | --------------------------- |
+| **Figtree** | Headings display, éditorial |
 
----
+La solution principale est déployée à l'adresse: `http://57.129.13.147/`
 
-## 9. Flux de données & Communication avec le backend
-
-### Protocole : Server-Sent Events (SSE)
-
-Le projet utilise le **streaming SSE** (Server-Sent Events) plutôt que REST classique pour deux raisons :
-
-- Affichage progressif token par token (effet "machine à écrire")
-- Mise à jour incrémentale des données (progress, cards, analyse)
-
-### Endpoint
-
-```
-GET /api/chat/stream
-  ?query=<requête utilisateur>
-  &session_id=<id session optionnel>
-  &user_lat=<latitude GPS optionnel>
-  &user_lon=<longitude GPS optionnel>
-```
-
-Le préfixe `/api` est **proxifié** par Vite vers le backend :
-
-```typescript
-// nuxt.config.ts
-vite: {
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '')
-      }
-    }
-  }
-}
-```
-
-### Événements SSE reçus
-
-| Événement           | Payload                                          | Usage                                       |
-| ------------------- | ------------------------------------------------ | ------------------------------------------- |
-| `token`             | `{ content: string }`                            | Ajout progressif au message assistant       |
-| `progress`          | `{ step, progress, message }`                    | Barre de progression pendant le traitement  |
-| `step`              | `{ step, status: 'start'\|'complete', message }` | Indicateurs d'étapes                        |
-| `query_analysis`    | `QueryAnalysisData`                              | Chips "détecté : Paris, japonais, 1 étoile" |
-| `restaurant_card`   | `RestaurantCardData`                             | Carte restaurant enrichie                   |
-| `location_detected` | `LocationData`                                   | Notification de géolocalisation             |
-| `done`              | `DoneData`                                       | Fin du stream + session_id                  |
-| `error`             | `{ message: string }`                            | Gestion des erreurs                         |
-
-### Composable `useChatStream`
-
-```typescript
-// Signature
-function streamChat(options: ChatStreamOptions): Promise<void>;
-
-// Utilisation
-await streamChat({
-  query: "restaurant étoilé à Lyon",
-  session_id: sessionId.value,
-  user_lat: 45.75,
-  user_lon: 4.83,
-  onToken: (content) => {
-    /* append to message */
-  },
-  onRestaurantCard: (card) => {
-    /* push to cards */
-  },
-  onDone: (data) => {
-    sessionId.value = data.session_id;
-  },
-});
-```
-
----
-
-## 10. Système de design & Charte graphique
-
-### Stack UI
-
-| Couche               | Technologie               |
-| -------------------- | ------------------------- |
-| Framework CSS        | Tailwind CSS v4           |
-| Composants           | Nuxt UI v4 (headless)     |
-| Icônes               | Heroicons (via `UIcon`)   |
-| Typographie markdown | `@tailwindcss/typography` |
-
-### Variables CSS marque
-
-```css
-:root {
-  --ui-michelin-red: #ba0b2f; /* Rouge Michelin principal */
-  --ui-michelin-black: #191919; /* Noir texte */
-  --ui-michelin-dark-gray: #757575; /* Gris foncé */
-  --ui-michelin-light-gray: #d2d2d2; /* Gris clair */
-}
-```
-
-### Palette utilisée
-
-| Usage            | Couleur                              |
-| ---------------- | ------------------------------------ |
-| Primaire / CTA   | Rouge Michelin `#c41e3a` / `#ba0b2f` |
-| Fond clair       | `gray-50` / `white`                  |
-| Texte principal  | `gray-900` / `#191919`               |
-| Texte secondaire | `gray-500` / `#757575`               |
-| Badges étoiles   | `amber-*` / `yellow-*`               |
-| Bib Gourmand     | `red-*`                              |
-| Prix             | `green-*`                            |
-
-### Philosophie UX
-
-- **Mobile-first** : conçu pour smartphone, adapté desktop
-- **Bottom navigation** : codes UX apps modernes (Instagram, TikTok)
-- **Couleurs Michelin** : rouge dominant, sobriété typographique
-- **Cards restaurants** : information dense mais lisible
-- **Animations** : transitions Vue pour fluidité du widget chat
-
----
-
-## 11. TypeScript — Interfaces & Types
-
-### Interfaces principales (`useChatStream.ts`)
-
-```typescript
-interface ChatStreamOptions {
-  query: string;
-  session_id?: string;
-  user_lat?: number;
-  user_lon?: number;
-  onError?: (error: string) => void;
-  onProgress?: (step: string, progress: number, message: string) => void;
-  onStep?: (
-    step: string,
-    status: "start" | "complete",
-    message: string,
-  ) => void;
-  onToken?: (content: string) => void;
-  onQueryAnalysis?: (analysis: QueryAnalysisData) => void;
-  onLocationDetected?: (location: LocationData) => void;
-  onRestaurantCard?: (card: RestaurantCardData) => void;
-  onDone?: (data: DoneData) => void;
-}
-
-interface RestaurantCardData {
-  id: number;
-  name: string;
-  award?: string; // ex: "1 étoile Michelin", "Bib Gourmand"
-  cuisine?: string; // ex: "Japonaise contemporaine"
-  price?: string; // ex: "€€€"
-  location: string;
-  distance_km?: number;
-  description?: string;
-  signature_dish?: string;
-  badge_text?: string;
-  badge_color?: string;
-  url?: string;
-  website_url?: string;
-}
-
-interface QueryAnalysisData {
-  original_query: string;
-  detected_location?: string;
-  detected_cuisine?: string;
-  detected_award?: string;
-  detected_price?: string;
-  is_geo_query: boolean;
-  distance_constraint?: number;
-  needs_user_location: boolean;
-}
-
-interface DoneData {
-  session_id: string;
-  response_length: number;
-  restaurants_count?: number;
-  query_analysis?: object;
-}
-```
-
----
-
-## 12. Dépendances
-
-### Production
-
-| Package                   | Version | Rôle                                           |
-| ------------------------- | ------- | ---------------------------------------------- |
-| `nuxt`                    | ^4.4.2  | Framework fullstack                            |
-| `vue`                     | ^3.5.32 | Framework UI                                   |
-| `vue-router`              | ^5.0.4  | Routing                                        |
-| `@nuxt/ui`                | ^4.6.1  | Composants headless (UButton, UInput, UIcon…)  |
-| `@nuxt/image`             | ^2.0.0  | Optimisation images                            |
-| `@pinia/nuxt`             | ^0.11.3 | Store (installé, non utilisé)                  |
-| `@nuxtjs/i18n`            | ^10.2.4 | Internationalisation (installé, non configuré) |
-| `nuxt-mapbox`             | ^1.6.4  | Cartes Mapbox (installé, non utilisé)          |
-| `marked`                  | ^15.0.4 | Parsing Markdown → HTML                        |
-| `dompurify`               | ^3.4.1  | Sanitisation HTML (sécurité XSS)               |
-| `@tailwindcss/typography` | ^0.5.19 | Styles prose pour le markdown                  |
-
-### Développement
-
-| Package            | Version | Rôle                       |
-| ------------------ | ------- | -------------------------- |
-| `@nuxt/eslint`     | ^1.15.2 | Linting intégré Nuxt       |
-| `@types/dompurify` | ^3.0.5  | Types TypeScript DOMPurify |
-
----
-
-## 13. Déploiement & Configuration
-
-### Variables d'environnement
-
-```env
-# .env.example
-NUXT_PUBLIC_API_BASE_URL=http://localhost:8000   # URL du backend
-PORT=3000                                         # Port du frontend
-```
-
-### Scripts npm
-
-```bash
-npm run dev          # Serveur de développement (port 3000)
-npm run build        # Build production
-npm run preview      # Prévisualisation du build
-npm run generate     # Génération statique
-npm run postinstall  # Préparation Nuxt (auto)
-```
-
-### Docker
-
-Le projet inclut un `Dockerfile` pour la containerisation. Build multi-stage optimisé Node.js.
-
-```bash
-docker build -t michelin-front .
-docker run -p 3000:3000 michelin-front
-```
-
----
-
-## 14. État d'avancement & Pistes d'évolution
-
-### Pages fonctionnelles
-
-| Page         | Fonctionnel | Notes                                        |
-| ------------ | ----------- | -------------------------------------------- |
-| `/`          | Oui         | Landing avec présentation des features       |
-| `/chat`      | Oui         | Chat SSE complet avec cards restaurants      |
-| `/assistant` | Partiel     | UI présente, logique à brancher              |
-| `/explore`   | Squelette   | Navigation restaurants à implémenter         |
-| `/creators`  | Squelette   | Cartes créateurs à connecter à une API       |
-| `/profile`   | UI statique | Données hardcodées, authentification absente |
-
-### Modules installés non configurés
-
-- **Pinia** : prêt à être utilisé dès que l'état doit être partagé entre pages (ex: profil utilisateur connecté, favoris)
-- **i18n (`@nuxtjs/i18n`)** : à activer pour supporter le multi-langue (FR/EN minimum, cohérent avec la stratégie d'internationalisation Michelin)
-- **nuxt-mapbox** : à utiliser sur `/explore` pour une carte interactive des restaurants
-
-### Améliorations architecturales suggérées
-
-1. **Store Pinia `useUserStore`** : centraliser le profil, l'historique de chat, les favoris
-2. **Store Pinia `useRestaurantStore`** : cache des fiches restaurants chargées
-3. **Authentification** : OAuth ou session backend pour personnalisation réelle
-4. **Page `/explore`** : intégrer la carte Mapbox avec clustering des restaurants Michelin
-5. **Page `/creators`** : brancher une API créateurs (profils, contenus, abonnements)
-6. **PWA** : configurer `@nuxtjs/pwa` pour une expérience installable sur mobile
-7. **Harmonisation langue** : uniformiser FR/EN selon la cible visée
-
----
-
-_Documentation générée le 24 avril 2026 — Hackaton Skolae 2026_
+La landing page du guide Michelin est disponible à l'adresse: `https://welcome-guide-michelin.vercel.app/`
