@@ -1,23 +1,5 @@
 <template>
   <div class="flex flex-col h-screen bg-white">
-    <!-- Header - Michelin Guide Branding -->
-    <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 bg-gradient-to-br from-red-600 to-red-700 rounded-lg flex items-center justify-center shadow-md">
-          <span class="text-white text-lg font-bold">M</span>
-        </div>
-        <div>
-          <span class="font-bold text-gray-900 text-lg">Guide MICHELIN</span>
-          <p class="text-xs text-gray-500">Assistant Restaurant IA</p>
-        </div>
-      </div>
-      <div class="flex items-center gap-2">
-        <NuxtLink to="/">
-          <UButton icon="i-heroicons-home" size="sm" variant="ghost" color="gray" />
-        </NuxtLink>
-      </div>
-    </div>
-
     <!-- Chat Messages -->
     <div ref="messagesContainer" class="flex-1 overflow-y-auto bg-gradient-to-b from-gray-50 to-white">
       <div class="max-w-4xl mx-auto px-4 py-6">
